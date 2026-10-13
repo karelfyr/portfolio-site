@@ -81,7 +81,6 @@ const allProjects: Project[] = [
       { type: 'pair', src: ['/images/float/Float_5.webp', '/images/float/Float_6.webp'] },
       { type: 'wide', src: '/images/float/Float_7.webp' },
       { type: 'wide', src: '/images/float/Float_8.webp' },
-      { type: 'wide', src: '/images/float/Float_9.webp' },
     ],
   },
   {
@@ -102,13 +101,10 @@ const allProjects: Project[] = [
     tools: 'Lorem, Ipsum, Dolor, Sit Amet',
     gallery: [
       { type: 'wide', src: '/images/polyglow/PolyGlow_2.webp' },
-      { type: 'wide', src: '/images/polyglow/PolyGlow_3.webp' },
-      { type: 'tall', src: '/images/polyglow/PolyGlow_4.webp' },
+      { type: 'large', src: '/images/polyglow/PolyGlow_3.webp' },
+      { type: 'large', src: '/images/polyglow/PolyGlow_4.webp' },
       { type: 'wide', src: '/images/polyglow/PolyGlow_5.webp' },
       { type: 'wide', src: '/images/polyglow/PolyGlow_6.webp' },
-      { type: 'tall', src: '/images/polyglow/Polyglow_7.webp' },
-      { type: 'tall', src: '/images/polyglow/Polyglow_8.webp' },
-      { type: 'wide', src: '/images/polyglow/Polyglow_9.webp' },
     ],
   },
   {
