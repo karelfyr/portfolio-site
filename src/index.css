@@ -265,6 +265,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cs-img > .img-placeholder { height: 100%; }
 .cs-img--hero:has(.img-placeholder) { aspect-ratio: 16 / 9; }
 .cs-img--tall:has(.img-placeholder) { aspect-ratio: 349 / 496; }
+.cs-img--large:has(.img-placeholder) { aspect-ratio: 3840 / 5400; }
 .cs-img--wide:has(.img-placeholder) { aspect-ratio: 349 / 245; }
 .cs-img--pair:has(.img-placeholder) { aspect-ratio: 169.5 / 241; }
 

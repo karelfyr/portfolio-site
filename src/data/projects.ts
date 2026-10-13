@@ -12,6 +12,7 @@ export type PairItem = Src | { section: SectionName }
 /** One row of the case study gallery. */
 export type GalleryRow =
   | { type: 'tall'; src?: Src } // portrait, ~ 349 × 496
+  | { type: 'large'; src?: Src } // portrait, 3840 × 5400
   | { type: 'wide'; src?: Src } // landscape, ~ 349 × 245
   | { type: 'pair'; src?: [PairItem, PairItem] } // two portraits side by side
   | { type: 'section'; name: SectionName } // live coded section, full width
@@ -86,8 +87,10 @@ const allProjects: Project[] = [
     slug: 'golfdren',
     title: 'Golfdren',
     tagline: 'Weaving Artisan Stories into a Global Brand',
+    cover: '/images/golfdren/tablet-aeration.webp',
     categories: ['brands-products'],
     featured: true,
+    hero: '/images/golfdren/hero-desktop.webp',
     intro:
       'GolfDren makes drainage solutions for golf bunkers. The goal was a fresh brand that could support new services – while staying clear for older audiences.',
     year: '2026',
@@ -96,12 +99,11 @@ const allProjects: Project[] = [
       'All brand materials live in one Figma project – consistent and professional, with a service offering shaped by real competitor research.',
     tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
     gallery: [
-      { type: 'pair', src: [{ section: 'golfdren-edges' }, undefined] },
-      { type: 'wide' },
-      { type: 'pair' },
-      { type: 'wide' },
-      { type: 'pair' },
-      { type: 'tall' },
+      { type: 'tall', src: '/images/golfdren/tablet-aeration.webp' },
+      { type: 'wide', src: '/images/golfdren/installation-variants.webp' },
+      { type: 'large', src: '/images/golfdren/page-aeration.webp' },
+      { type: 'pair', src: ['/images/golfdren/project-proposal.webp', '/images/golfdren/poster.webp'] },
+      { type: 'wide', src: '/images/golfdren/phone-articles.webp' },
     ],
   },
 ]
