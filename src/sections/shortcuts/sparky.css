@@ -1,0 +1,31 @@
+/* Sparky pill — layout only; all motion is written per frame by Sparky.tsx */
+.sp {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.sp__icon {
+  flex-shrink: 0;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.sp__window { position: relative; overflow: hidden; width: 0; }
+.sp__group { position: absolute; top: 0; right: 0; height: 100%; }
+.sp__text {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: block;
+  white-space: nowrap;
+  font-family: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 500;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-color: #727272;
+}
+.sp__measure { position: absolute; visibility: hidden; pointer-events: none; right: auto; left: 0; }

@@ -1,0 +1,223 @@
+/* 1:1 values from Figma frame 337:1496 (native 3840 × 2160, scaled by ScaledFrame) */
+.sh {
+  --sf: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', 'Helvetica Neue', Arial, sans-serif;
+  --sf-rounded: ui-rounded, 'SF Pro Rounded', var(--sf);
+  --glow: 20 7 32;
+  /*
+   * Purple glow: Figma's ellipse (#A828D1, 15% opacity, hard-light, 650px blur) at (396, 746),
+   * 6510 × 2636 — centre (3651, 2064). Baked into a radial gradient because Safari won't
+   * render SVG blur filters this large; rgb(20 7 32) is the blended result over #080808.
+   * Radii = ellipse radii + 2 × blur.
+   */
+  background:
+    radial-gradient(
+      ellipse 4555px 2618px at 3651px 2064px,
+      rgb(var(--glow)) 0%,
+      rgb(var(--glow) / 0.92) 30%,
+      rgb(var(--glow) / 0.62) 55%,
+      rgb(var(--glow) / 0.28) 75%,
+      rgb(var(--glow) / 0.08) 90%,
+      rgb(var(--glow) / 0) 100%
+    ),
+    #080808;
+  overflow: hidden;
+  color: #e6e6e6;
+}
+.sh p { margin: 0; }
+
+.sh__window {
+  position: absolute;
+  left: calc(50% + 0.11px);
+  top: 333.28px;
+  transform: translateX(-50%);
+  width: 2745.78px;
+  height: 1492.793px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 185.253px;
+  padding: 40px 40px 308.755px;
+  background: rgba(0, 0, 0, 0.26);
+  border-radius: 104px;
+  /* Glass panel: frosted backdrop + soft drop shadow; the light rim comes from .sh__rim */
+  -webkit-backdrop-filter: blur(60px) saturate(140%);
+  backdrop-filter: blur(60px) saturate(140%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.04),
+    0 40px 160px rgba(0, 0, 0, 0.45);
+  --rim: 2.5px;
+  --rim-gradient: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.1) 22%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(255, 255, 255, 0.1) 78%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+}
+
+/*
+ * Apple-style glass rim: a gradient hairline border drawn with a masked pseudo-element,
+ * brighter where light hits (top-left / bottom-right) and fading along the sides.
+ */
+.sh__rim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: var(--rim);
+  border-radius: inherit;
+  background: var(--rim-gradient);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+/* Navbar */
+.sh__navbar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 143.884px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 31.974px 0 47.961px;
+  border-radius: 35.971px;
+}
+.sh__brand { display: flex; align-items: center; gap: 15.987px; white-space: nowrap; }
+.sh__brand-for {
+  font-family: var(--sf);
+  font-weight: 510;
+  font-size: 29.976px;
+  line-height: 39.968px;
+  letter-spacing: 0.2998px;
+}
+.sh__brand-app {
+  font-family: var(--sf);
+  font-weight: 700;
+  font-size: 43.964px;
+  line-height: 51.958px;
+}
+.sh__tools { display: flex; align-items: center; gap: 15.987px; }
+
+/* Sparky slot — the pill itself (sparky.css) grows leftward from here as it reveals */
+.sh__quote {
+  height: 71.942px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 31.974px 0 23.981px;
+}
+
+/* Opening: the app shows the window instantly and fades the columns in left to right
+   (0.35 s ease-in-out, +0.04 s per column). Played once when the hero mounts. */
+@keyframes sh-column-in { from { opacity: 0; } to { opacity: 1; } }
+.sh--intro .sh__card,
+.sh--intro .sh__divider {
+  animation: sh-column-in 0.35s cubic-bezier(0.42, 0, 0.58, 1) both;
+  animation-delay: calc(0.3s + var(--i, 0) * 0.04s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sh--intro .sh__card, .sh--intro .sh__divider { animation: none; }
+}
+
+/* Liquid glass controls — mic and search share one Apple-style glass pill */
+.sh__glass {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.065) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.08),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.25),
+    0 15.987px 79.935px rgba(0, 0, 0, 0.12);
+}
+.sh__glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.12) 30%,
+    rgba(255, 255, 255, 0.05) 55%,
+    rgba(255, 255, 255, 0.12) 80%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+.sh__mic { width: 71.942px; height: 71.942px; justify-content: center; }
+.sh__mic-icon { position: relative; width: 40px; height: 40px; }
+.sh__search {
+  width: 393.682px;
+  height: 71.942px;
+  gap: 11.99px;
+  padding: 0 19.984px;
+}
+.sh__search-icon { position: relative; width: 36px; height: 36px; flex-shrink: 0; }
+.sh__search-label {
+  position: relative;
+  font-family: var(--sf);
+  font-weight: 510;
+  font-size: 25.979px;
+  line-height: 31.974px;
+  color: #ebedf0;
+}
+
+/* Shortcut cards */
+.sh__cards {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 47.961px;
+}
+.sh__card-wrap { display: contents; }
+.sh__divider {
+  align-self: stretch;
+  width: 0;
+  border-left: 1.998px solid rgba(230, 230, 230, 0.06);
+}
+.sh__card { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 79.935px; }
+.sh__section { display: flex; align-items: flex-end; justify-content: flex-end; gap: 47.961px; }
+.sh__keys {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 15.987px;
+  font-family: var(--sf);
+  font-size: 25.979px;
+  line-height: 31.974px;
+  text-align: right;
+  white-space: nowrap;
+}
+.sh__keys p { opacity: 0.6; }
+.sh__or { color: #9b9b9b; }
+.sh__text { width: 299.758px; display: flex; flex-direction: column; gap: 39.968px; }
+.sh__title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 33.973px;
+  line-height: 43.964px;
+  white-space: nowrap;
+}
+.sh__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15.987px;
+  font-family: var(--sf);
+  font-size: 25.979px;
+  line-height: 31.974px;
+  letter-spacing: 0.5196px;
+  white-space: nowrap;
+}
+.sh__actions p { opacity: 0.74; }

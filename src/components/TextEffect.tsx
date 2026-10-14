@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ElementType } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import { useQueuedReveal } from '../lib/revealQueue'
 
 type Props = {
   /** Text to animate. Use "\n" to force a line break. */
@@ -64,10 +65,13 @@ export function TextEffect({
     return () => window.removeEventListener('resize', measure)
   }, [per, text])
 
+  // In-view text waits for its turn in the shared reveal queue (top-to-bottom cascade).
+  const queued = useQueuedReveal(ref, trigger === 'inView' && !reduce)
+  const start = delay + (queued ?? 0)
+
   const MotionTag = useMemo(() => motion.create(Tag), [Tag])
   // Per-line needs one layout pass to know the lines before it can start.
-  const ready = per === 'word' || lineOf !== null
-  const target = ready ? 'shown' : 'hidden'
+  const ready = (per === 'word' || lineOf !== null) && (trigger === 'appear' || queued !== null)
 
   return (
     <MotionTag
@@ -75,9 +79,7 @@ export function TextEffect({
       className={className}
       aria-label={text.replace(/\n/g, ' ')}
       initial={reduce ? false : 'hidden'}
-      {...(trigger === 'appear'
-        ? { animate: target }
-        : { whileInView: target, viewport: { once: true, amount: 0 } })}
+      animate={ready ? 'shown' : 'hidden'}
     >
       {words.map(({ w, br }, i) => {
         const order = per === 'line' ? (lineOf?.[i] ?? 0) : i
@@ -85,10 +87,10 @@ export function TextEffect({
           <span key={i} aria-hidden>
             <motion.span
               data-word
-              style={{ display: 'inline-block', willChange: 'transform, filter, opacity' }}
+              style={{ display: 'inline-block' }}
               variants={{
                 hidden,
-                shown: { ...shown, transition: { duration: 0.9, ease, delay: delay + order * step } },
+                shown: { ...shown, transition: { duration: 0.9, ease, delay: start + order * step } },
               }}
             >
               {w}

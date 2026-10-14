@@ -1,0 +1,178 @@
+/*
+ * Shortcuts HUD clip — stage 1920 × 1350 pt rendered 2× (3840 × 2700).
+ * The window mirrors the hero's design (hero px ÷ 2); the shortcut list uses the app's sizes
+ * (docs/shortcuts-hud-spec.md).
+ */
+.sc-host { width: 100%; }
+.sc {
+  --sf: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', 'Helvetica Neue', Arial, sans-serif;
+  --text: #e6e6e6;
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--sf);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Background — identical to the hero: #080808 with the purple glow rising bottom-right.
+   Static (outside the camera), like the hero. */
+.sc__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 2278px 1309px at 1826px 1302px,
+      rgb(20 7 32) 0%,
+      rgb(20 7 32 / 0.92) 30%,
+      rgb(20 7 32 / 0.62) 55%,
+      rgb(20 7 32 / 0.28) 75%,
+      rgb(20 7 32 / 0.08) 90%,
+      rgb(20 7 32 / 0) 100%
+    ),
+    #080808;
+}
+
+.sc__camera { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+
+/* ── Window (hero style) ─────────────────────────────── */
+.sc__window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  padding: 20px;
+  border-radius: 52px;
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 80px rgba(0, 0, 0, 0.45);
+  visibility: hidden;
+  transform-origin: 50% 50%;
+}
+/* Glass rim — same gradient as the hero, 1.25 pt */
+.sc__window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.25px;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.1) 22%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.1) 78%, rgba(255, 255, 255, 0.3) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+/* Navbar */
+.sc__navbar { position: relative; flex-shrink: 0; height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px 0 24px; }
+.sc__brand { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.sc__brand-for { font-size: 15px; font-weight: 510; letter-spacing: 0.15px; }
+.sc__brand-app { font-size: 22px; font-weight: 700; }
+.sc__tools { display: flex; align-items: center; gap: 8px; }
+.sc__tools .sp { margin-right: 8px; }
+
+/* Glass pills (mic + search) — hero style */
+.sc__glass {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.065) 100%);
+  box-shadow:
+    inset 0 0.75px 0.75px rgba(255, 255, 255, 0.08),
+    inset 0 -0.75px 1.5px rgba(0, 0, 0, 0.25),
+    0 8px 40px rgba(0, 0, 0, 0.12);
+}
+.sc__glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.12) 80%, rgba(255, 255, 255, 0.3) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.sc__mic { width: 36px; height: 36px; justify-content: center; }
+.sc__mic svg { width: 20px; height: 20px; }
+.sc__search { width: 197px; height: 36px; gap: 6px; padding: 0 10px; }
+.sc__search-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.sc__search-field { position: relative; display: flex; align-items: center; height: 16px; font-size: 13px; font-weight: 510; }
+.sc__search-placeholder { color: #ebedf0; }
+.sc__search-text { color: #ebedf0; }
+.sc__caret { width: 1.5px; height: 16px; margin-left: 1px; background: var(--text); border-radius: 1px; opacity: 0; }
+.sc__search-placeholder + .sc__caret { position: absolute; left: 0; margin-left: 0; }
+
+/* Columns — the app's list, auto-scrolled horizontally by the clip */
+.sc__viewport { position: relative; overflow: hidden; padding: 0 24px; margin: 0 -0px; }
+.sc__columns { display: flex; align-items: stretch; will-change: transform; }
+.sc__col-wrap { display: contents; }
+.sc__divider { flex-shrink: 0; width: 1px; margin: 0 23px; background: rgba(230, 230, 230, 0.1); opacity: 0; }
+.sc__col { flex-shrink: 0; width: 324px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; opacity: 0; }
+.sc__section { display: flex; gap: 24px; align-items: flex-start; }
+.sc__keys-col { min-width: 120px; padding-top: 42px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.sc__actions-col { width: 180px; display: flex; flex-direction: column; gap: 8px; }
+.sc__title { height: 22px; margin-bottom: 12px; font-size: 17px; font-weight: 700; line-height: 22px; white-space: nowrap; transition: opacity 0.35s cubic-bezier(0.45, 0, 0.55, 1); }
+.sc__row { height: 16px; font-size: 13px; line-height: 16px; white-space: nowrap; transition: opacity 0.35s cubic-bezier(0.45, 0, 0.55, 1); }
+.sc__sep { color: #9b9b9b; }
+
+/* ── Cursor ───────────────────────────────────────────── */
+.sc__cursor { --ripple: 0; position: absolute; left: 0; top: 0; width: 20px; height: 28px; opacity: 0; transform-origin: 2px 2px; }
+.sc__cursor svg { position: relative; width: 20px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); }
+.sc__ripple {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  opacity: calc((1 - var(--ripple)) * min(1, var(--ripple) * 20));
+  transform: scale(calc(0.3 + 0.9 * var(--ripple)));
+}
+
+/* ── Keycaps — same glass language as the window ─────── */
+.sc__keys { position: absolute; inset: 0; }
+.sc__keyrow { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 18px; }
+.sc__key {
+  --press: 0;
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  opacity: 0;
+  background: rgba(40, 40, 42, 0.72);
+  box-shadow:
+    0 calc(18px - 10px * var(--press)) calc(48px - 24px * var(--press)) rgba(0, 0, 0, 0.45),
+    inset 0 -3px 0 rgba(0, 0, 0, calc(0.35 - 0.25 * var(--press)));
+}
+.sc__key::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, calc(0.08 + 0.1 * var(--press))) 0%, transparent 45%, rgba(255, 255, 255, 0.03) 100%);
+}
+.sc__key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.2) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.sc__key--wide { width: 156px; }
+.sc__key-glyph { position: relative; font-size: 44px; font-weight: 500; line-height: 1; }
+.sc__key--wide .sc__key-glyph { font-size: 34px; }
+.sc__key-label { position: relative; font-size: 13px; font-weight: 500; color: #9b9b9b; }

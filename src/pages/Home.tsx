@@ -5,7 +5,11 @@ import { BlurOnScroll } from '../components/BlurOnScroll'
 import { ProjectCard } from '../components/ProjectCard'
 import { Img } from '../components/Img'
 import { useMobileSafeVh } from '../hooks/useMobileSafeVh'
-import { projects } from '../data/projects'
+import { getProject } from '../data/projects'
+import { Appear } from '../components/Appear'
+
+// Projects shown in "Selected works", in this order.
+const selectedWorks = ['float', 'pos-digital', 'golfdren']
 
 const about = [
   { label: 'What I do', body: ['Finding what makes a brand different, and making it clear – through visuals, words, and intentional design.'] },
@@ -31,16 +35,9 @@ const timeline = [
   },
 ]
 
-const reveal = {
-  initial: { opacity: 0, y: 16, filter: 'blur(10px)' },
-  whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' },
-  viewport: { once: true, amount: 0 },
-  transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] as const, delay: 0.2 },
-}
-
 export function Home() {
   useMobileSafeVh()
-  const featured = projects.filter((p) => p.featured)
+  const featured = selectedWorks.map((slug) => getProject(slug)).filter((p) => p !== undefined)
 
   return (
     <>
@@ -73,7 +70,7 @@ export function Home() {
           </div>
           {featured.length > 0 && (
             <div className="grid">
-              {featured.map((p, i) => <ProjectCard key={p.slug} project={p} index={i} />)}
+              {featured.map((p) => <ProjectCard key={p.slug} project={p} />)}
             </div>
           )}
         </div>
@@ -86,38 +83,32 @@ export function Home() {
             <dl className="about__rows">
               {about.map((row) => (
                 <div className="about__row" key={row.label}>
-                  <motion.dt className="label label--muted" {...reveal}>{row.label}</motion.dt>
+                  <Appear as="dt" className="label label--muted" blur>{row.label}</Appear>
                   <dd className="body">
                     {row.body.length === 1 ? (
                       <TextEffect text={row.body[0]} trigger="inView" per="line" delay={0.2} />
                     ) : (
-                      row.body.map((line) => <motion.p key={line} {...reveal}>{line}</motion.p>)
+                      row.body.map((line) => <Appear as="p" key={line} blur>{line}</Appear>)
                     )}
                   </dd>
                 </div>
               ))}
               <div className="about__row">
-                <motion.dt className="label label--muted" {...reveal}>7 years in design</motion.dt>
+                <Appear as="dt" className="label label--muted" blur>7 years in design</Appear>
                 <dd className="timeline">
                   {timeline.map((t) => (
-                    <motion.div key={t.when + t.what} className="timeline__item" {...reveal}>
+                    <Appear key={t.when + t.what} className="timeline__item" blur>
                       <p className="timeline__when">{t.when}</p>
                       <p className="body">{t.what}</p>
-                    </motion.div>
+                    </Appear>
                   ))}
                 </dd>
               </div>
             </dl>
           </div>
-          <motion.div
-            className="about__photo"
-            initial={{ opacity: 0, scale: 1.04, filter: 'blur(12px)' }}
-            whileInView={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <Appear className="about__photo" y={24} duration={1.1}>
             <Img alt="Karel Fyrbach" />
-          </motion.div>
+          </Appear>
         </div>
       </section>
     </>

@@ -4,7 +4,7 @@ export type Category = 'brands-products' | 'visuals-interfaces' | 'photography'
 type Src = string | undefined
 
 /** Live coded sections that can stand in for an image. */
-export type SectionName = 'golfdren-edges'
+export type SectionName = 'golfdren-edges' | 'shortcuts-hero' | 'shortcuts-clip'
 
 /** A pair cell holds an image path (or nothing, for a placeholder) or a live section. */
 export type PairItem = Src | { section: SectionName }
@@ -26,6 +26,8 @@ export type Project = {
   featured?: boolean
   // Case study
   hero?: Src
+  /** A live coded section shown instead of the hero image. */
+  heroSection?: SectionName
   intro: string
   year: string
   delivered: string
@@ -39,10 +41,10 @@ const allProjects: Project[] = [
     slug: 'pos-digital',
     title: 'POS Digital',
     tagline: 'Signage experiences and kiosk interfaces for global brands',
-    cover: '/images/pos-digital/decathlon-kiosk.jpg',
+    cover: '/images/Thumbnails/posdigital_thumb.webp',
     categories: ['visuals-interfaces'],
     featured: true,
-    hero: '/images/pos-digital/hero-kiosks.webp',
+    hero: '/images/pos-digital/posdigital_1.webp',
     intro:
       'POS Digital designs and sells advertisement screens and touchscreen kiosks for brands like Marriott, Decathlon, KIA, GAP, Celio and 100+ more major brands.',
     year: '2022 – now',
@@ -51,11 +53,11 @@ const allProjects: Project[] = [
       'I designed a touchscreen kiosk interface for Decathlon, KIA, and Marriott – projects serving more than 50 000 users monthly. I also create realistic signage experience visualizations that stand at the beginning of every project.',
     tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
     gallery: [
-      { type: 'wide', src: '/images/pos-digital/decathlon-references.jpg' },
-      { type: 'pair', src: ['/images/pos-digital/peripherals.jpg', '/images/pos-digital/dahlia-kiosk.jpg'] },
-      { type: 'wide', src: '/images/pos-digital/kiosk-stand.jpg' },
-      { type: 'pair', src: ['/images/pos-digital/led-wall.jpg', '/images/pos-digital/decathlon-kiosk.jpg'] },
-      { type: 'wide', src: '/images/pos-digital/ad-booking-ui.jpg' },
+      { type: 'wide', src: '/images/pos-digital/posdigital_2.webp' },
+      { type: 'pair', src: ['/images/pos-digital/posdigital_3.webp', '/images/pos-digital/posdigital_4.webp'] },
+      { type: 'wide', src: '/images/pos-digital/posdigital_5.webp' },
+      { type: 'pair', src: ['/images/pos-digital/posdigital_6.webp', '/images/pos-digital/posdigital_7.webp'] },
+      { type: 'wide', src: '/images/pos-digital/posdigital_8.webp' },
     ],
   },
   {
@@ -63,7 +65,7 @@ const allProjects: Project[] = [
     slug: 'float',
     title: 'Float',
     tagline: 'Signage experiences and kiosk interfaces for global brands',
-    cover: '/images/float/Float_6.webp',
+    cover: '/images/Thumbnails/float_thumb.webp',
     categories: ['brands-products', 'visuals-interfaces'],
     featured: true,
     hero: '/images/float/Float_1.webp',
@@ -84,11 +86,57 @@ const allProjects: Project[] = [
     ],
   },
   {
+    // TODO: placeholder lorem ipsum and empty gallery — replace with Shortcuts' own copy and images.
+    slug: 'shortcuts',
+    title: 'Shortcuts',
+    tagline: 'Lorem ipsum dolor sit amet, consectetur adipiscing',
+    cover: '/images/Thumbnails/Shortcuts_thumb.webp',
+    categories: ['visuals-interfaces'],
+    featured: true,
+    heroSection: 'shortcuts-hero',
+    intro:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua – ut enim ad minim veniam.',
+    year: '2026',
+    delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
+    impact:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
+    gallery: [
+      { type: 'section', name: 'shortcuts-clip' }, // 3840 × 2700 animated HUD clip
+    ],
+  },
+  {
+    // TODO: placeholder lorem ipsum — replace with Zoe's own copy.
+    slug: 'zoe',
+    title: 'Zoe',
+    tagline: 'Lorem ipsum dolor sit amet, consectetur adipiscing',
+    cover: '/images/Thumbnails/zoe_thumb.webp',
+    categories: ['brands-products'],
+    featured: true,
+    hero: '/images/Zoe/zoe_1.webp',
+    intro:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua – ut enim ad minim veniam.',
+    year: '2026',
+    delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
+    impact:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
+    gallery: [
+      { type: 'wide', src: '/images/Zoe/zoe_2.webp' },
+      { type: 'pair', src: ['/images/Zoe/zoe_3.webp', '/images/Zoe/zoe_4.webp'] },
+      { type: 'pair', src: ['/images/Zoe/zoe_5.webp', '/images/Zoe/zoe_6.webp'] },
+      { type: 'wide', src: '/images/Zoe/zoe_7.webp' },
+      { type: 'wide', src: '/images/Zoe/zoe_8.webp' },
+      { type: 'wide', src: '/images/Zoe/zoe_9.webp' },
+      { type: 'wide', src: '/images/Zoe/zoe_10.webp' },
+    ],
+  },
+  {
     // TODO: placeholder lorem ipsum — replace with Polyglow's own copy.
     slug: 'polyglow',
     title: 'Polyglow',
     tagline: 'Lorem ipsum dolor sit amet, consectetur adipiscing',
-    cover: '/images/polyglow/PolyGlow_1.webp',
+    cover: '/images/Thumbnails/polyglow_thumb.webp',
     categories: ['brands-products'],
     featured: true,
     hero: '/images/polyglow/PolyGlow_1.webp',
@@ -111,10 +159,10 @@ const allProjects: Project[] = [
     slug: 'golfdren',
     title: 'Golfdren',
     tagline: 'Weaving Artisan Stories into a Global Brand',
-    cover: '/images/golfdren/tablet-aeration.webp',
+    cover: '/images/Thumbnails/golfdren_thumb.webp',
     categories: ['brands-products'],
     featured: true,
-    hero: '/images/golfdren/hero-desktop.webp',
+    hero: '/images/golfdren/GolfDren_1.webp',
     intro:
       'GolfDren makes drainage solutions for golf bunkers. The goal was a fresh brand that could support new services – while staying clear for older audiences.',
     year: '2026',
@@ -123,16 +171,23 @@ const allProjects: Project[] = [
       'All brand materials live in one Figma project – consistent and professional, with a service offering shaped by real competitor research.',
     tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
     gallery: [
-      { type: 'tall', src: '/images/golfdren/tablet-aeration.webp' },
-      { type: 'wide', src: '/images/golfdren/installation-variants.webp' },
-      { type: 'large', src: '/images/golfdren/page-aeration.webp' },
-      { type: 'pair', src: ['/images/golfdren/project-proposal.webp', '/images/golfdren/poster.webp'] },
-      { type: 'wide', src: '/images/golfdren/phone-articles.webp' },
+      { type: 'large', src: '/images/golfdren/GolfDren_2.webp' },
+      { type: 'wide', src: '/images/golfdren/GolfDren_3.webp' },
+      { type: 'large', src: '/images/golfdren/GolfDren_4.webp' },
+      { type: 'pair', src: ['/images/golfdren/GolfDren_5.webp', '/images/golfdren/GolfDren_6.webp'] },
+      { type: 'wide', src: '/images/golfdren/GolfDren_7.webp' },
     ],
   },
 ]
 
-/** Projects in A–Z order by title, everywhere they're listed. */
-export const projects = [...allProjects].sort((a, b) => a.title.localeCompare(b.title))
+/** Display order by slug. Projects not listed here follow in A–Z order by title. */
+const order = ['float', 'pos-digital', 'golfdren', 'polyglow', 'shortcuts', 'zoe']
+
+const rank = (p: Project) => {
+  const i = order.indexOf(p.slug)
+  return i === -1 ? order.length : i
+}
+
+export const projects = [...allProjects].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title))
 
 export const getProject =(slug?: string) => projects.find((p) => p.slug === slug)

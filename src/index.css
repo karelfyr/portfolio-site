@@ -247,6 +247,40 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--dim);
 }
 
+/* ---------- Pages (Works, Contact, 404) ---------- */
+.page { padding-top: 160px; padding-bottom: 160px; min-height: calc(var(--vh, 1vh) * 100); }
+.page__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(48px, 7vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+/* Works */
+.filters { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 40px; }
+.filter {
+  padding: 4px 0;
+  color: var(--muted);
+  border-bottom: 0.5px solid transparent;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.filter:hover { color: var(--fg); }
+.filter--active { color: var(--fg); border-bottom-color: var(--fg); }
+.grid--works { margin-top: 40px; }
+.works__empty { margin-top: 40px; }
+
+/* Contact */
+.contact { display: flex; justify-content: space-between; gap: 40px; }
+.contact__main { flex: 0 1 747px; display: flex; flex-direction: column; gap: 40px; }
+.contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.contact__intro { max-width: 300px; }
+.contact__details { display: flex; flex-direction: column; gap: 6px; }
+.contact__photo { flex: 0 0 374px; align-self: flex-start; aspect-ratio: 374 / 467; overflow: hidden; }
+.contact__photo img { width: 100%; height: 100%; object-fit: cover; }
+.notfound__back { margin-top: 40px; }
+
 /* ---------- Case study ---------- */
 .cs { padding-top: 160px; }
 .cs__head { display: flex; flex-direction: column; gap: 20px; }
@@ -322,6 +356,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .about__row { flex-direction: column; gap: 12px; }
   .about__row > dt, .about__row > dd { flex: none; width: 100%; }
   .cs { padding-top: 120px; }
+  .page { padding-top: 120px; padding-bottom: 100px; }
+  .contact { flex-direction: column; }
+  .contact__row { grid-template-columns: 1fr; gap: 24px; }
+  .contact__photo { flex-basis: auto; width: 100%; max-width: 374px; }
   .cs__body { flex-direction: column; gap: 0; }
   .cs__info { position: static; max-width: none; padding-top: 60px; }
   .cs__gallery { width: 100%; padding-top: 60px; }
