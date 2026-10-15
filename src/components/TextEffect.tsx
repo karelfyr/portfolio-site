@@ -87,6 +87,7 @@ export function TextEffect({
           <span key={i} aria-hidden>
             <motion.span
               data-word
+              data-text={w.toLowerCase()} // lets CSS fine-tune individual words (e.g. kerning)
               style={{ display: 'inline-block' }}
               variants={{
                 hidden,

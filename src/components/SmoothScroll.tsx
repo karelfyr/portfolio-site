@@ -23,6 +23,27 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // While scrolling, pause hover effects (e.g. card image zoom) so cards passing under the
+  // cursor don't trigger expensive re-renders of large images mid-scroll.
+  useEffect(() => {
+    const root = document.documentElement
+    let timer = 0
+    const onScroll = () => {
+      if (!timer) root.classList.add('is-scrolling')
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        root.classList.remove('is-scrolling')
+        timer = 0
+      }, 150)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.clearTimeout(timer)
+      root.classList.remove('is-scrolling')
+    }
+  }, [])
+
   useEffect(() => {
     if (lenis) lenis.scrollTo(0, { immediate: true })
     else window.scrollTo(0, 0)

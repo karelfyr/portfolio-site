@@ -169,12 +169,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-weight: 500;
   font-size: clamp(52px, 12.6vw, 120px);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.045em;
   text-transform: uppercase;
   color: var(--fg);
   text-wrap: balance;
 }
-.hero__sub { color: var(--muted); max-width: 640px; text-wrap: balance; }
+/* Optical kerning: open up the tight "E–Y" pair in "EYE" */
+.hero__title [data-text='eye']::first-letter { margin-right: 0.05em; }
+.hero__sub { color: var(--muted); max-width: 720px; text-wrap: balance; font-size: 18px; line-height: 1.5; letter-spacing: -0.005em; }
 .hero__cta {
   position: absolute;
   right: 20px;
@@ -206,6 +208,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: transform 1s var(--ease);
 }
 .card:hover .card__media > * { transform: scale(1.04); }
+/* No hover effects mid-scroll (set by SmoothScroll) — keeps scrolling smooth over the grid */
+.is-scrolling .card { pointer-events: none; }
 .card__text { display: flex; flex-direction: column; gap: 4px; }
 .card__title {
   font-family: var(--font-ui);

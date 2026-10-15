@@ -43,7 +43,7 @@ export function Home() {
           <TextEffect as="h1" className="hero__title" text="Engineer with designer’s eye" per="word" trigger="appear" delay={0.6} />
           <TextEffect
             className="label hero__sub"
-            text="I’m Karel, a kid who loved photography, now building software and brands."
+            text="I’m Karel, once a kid who loved photography, now building software and brands."
             per="line"
             trigger="appear"
             delay={1.0}
