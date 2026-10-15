@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { TextEffect } from '../components/TextEffect'
 import { ProjectCard } from '../components/ProjectCard'
 import { Appear } from '../components/Appear'
+import { LogoMarquee } from '../components/LogoMarquee'
+import { logos } from '../data/logos'
 import { projects, type Category } from '../data/projects'
 
 const filters: { id: Category | 'all'; label: string }[] = [
@@ -19,7 +21,11 @@ export function Works() {
     <section className="page container">
       <TextEffect as="h1" className="page__title" text="Works" per="word" trigger="appear" delay={0.3} />
 
-      <Appear className="filters" delay={0.4}>
+      <Appear className="works__logos" delay={0.4}>
+        <LogoMarquee logos={logos} />
+      </Appear>
+
+      <Appear className="filters" delay={0.5}>
         {filters.map((f) => (
           <button
             key={f.id}

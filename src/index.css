@@ -40,6 +40,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .label {
   font-family: var(--font-ui);
+  font-weight: 400; /* also when used on a heading element */
   font-size: 14px;
   line-height: 1.2;
   letter-spacing: 0.01em;
@@ -227,18 +228,19 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* ---------- About ---------- */
+/* Same 3-column grid as the works cards: text spans two columns, the photo fills the third. */
 .about {
-  display: flex;
-  justify-content: space-between;
-  gap: 40px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
-.about__main { flex: 0 1 680px; display: flex; flex-direction: column; gap: 40px; }
+.about__main { grid-column: 1 / 3; max-width: 680px; display: flex; flex-direction: column; gap: 40px; }
 .about__rows { display: flex; flex-direction: column; gap: 40px; }
 .about__row { display: flex; gap: 4px; align-items: flex-start; }
 .about__row > dt { flex: 225 0 0; min-width: 0; }
 .about__row > dd { flex: 451 0 0; min-width: 0; }
 .about__row dd.body p + p { margin-top: 2px; }
-.about__photo { flex: 0 0 280px; align-self: flex-start; aspect-ratio: 280 / 376; overflow: hidden; }
+.about__photo { grid-column: 3; align-self: start; aspect-ratio: 280 / 376; overflow: hidden; }
 .about__photo img { width: 100%; height: 100%; object-fit: cover; }
 
 .timeline { display: flex; flex-direction: column; gap: 16px; }
@@ -272,6 +274,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .filter:hover { color: var(--fg); }
 .filter--active { color: var(--fg); border-bottom-color: var(--fg); }
+/* Logo frames carry ~40% empty space above/below the mark; pull the strip in so the rhythm stays tight. */
+.works__logos { margin: 16px 0 -16px; }
 .grid--works { margin-top: 40px; }
 .works__empty { margin-top: 40px; }
 
@@ -284,6 +288,131 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .contact__photo { flex: 0 0 374px; align-self: flex-start; aspect-ratio: 374 / 467; overflow: hidden; }
 .contact__photo img { width: 100%; height: 100%; object-fit: cover; }
 .notfound__back { margin-top: 40px; }
+
+/* Logos — bracket cards (Figma 367:1964, card 1117×514) */
+/* Tighter 10px gutters than the Works grid; 40px under the title. */
+.brackets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  margin-top: 40px;
+}
+.bracket { container-type: inline-size; display: flex; flex-direction: column; }
+/* Home: small label above the logo grid instead of a section title */
+.section--clients .brackets { margin-top: 20px; }
+/* Same size as the hero subtitle, slightly tighter */
+.section--clients .label { font-size: 18px; line-height: 1.5; letter-spacing: 0.01em; }
+/* Insets scale with the card (cqw). Logo and caption are placed absolutely so the logo can
+   glide between the centre and any corner (see LogoBracket for the direction logic). */
+.bracket__inner {
+  --pad: 7.3cqw;
+  --sx: -1; /* logo corner: -1 left / +1 right */
+  --sy: -1; /* logo corner: -1 top / +1 bottom */
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1117 / 640; /* taller than the Figma 1117×514 card, for more air between caption and logo */
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #000;
+  transition: border-color 0.6s var(--ease), transform 0.7s var(--ease);
+}
+.bracket__inner[data-x='right'] { --sx: 1; }
+.bracket__inner[data-y='bottom'] { --sy: 1; }
+.bracket__inner.is-active {
+  border-color: rgba(255, 255, 255, 0.24);
+  transition: border-color 0.6s var(--ease); /* transform follows the cursor from JS */
+}
+
+/* Light under the cursor: a soft glow on the surface and a brighter one along the edge. */
+.bracket__inner::before,
+.bracket__inner::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+.bracket__inner::before {
+  background: radial-gradient(circle 90cqw at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.049), rgba(255, 255, 255, 0.02) 35%, transparent 80%);
+}
+.bracket__inner::after {
+  padding: 1px;
+  background: radial-gradient(circle 70cqw at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.315), rgba(255, 255, 255, 0.12) 35%, transparent 80%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.bracket__inner.is-active::before,
+.bracket__inner.is-active::after { opacity: 1; }
+@media (hover: none) {
+  .bracket__inner::before, .bracket__inner::after { display: none; }
+}
+
+/* Logo: centred and slightly enlarged at rest, glides to its corner when active. */
+.bracket__logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: auto;
+  opacity: 0.8;
+  transform: translate(-50%, -50%) scale(1.25);
+  transition: opacity 0.6s var(--ease), transform 0.8s var(--ease);
+}
+/* In its corner the logo steps back: slightly smaller (90%) and dimmer, so the caption leads.
+   The extra 5% of its size keeps the shrunken logo flush with the corner. */
+.is-active .bracket__logo {
+  opacity: 0.65;
+  transform:
+    translate(calc(-50% + var(--sx) * (var(--lx) + var(--lw) * 0.05)), calc(-50% + var(--sy) * (var(--ly) + var(--lh) * 0.05)))
+    scale(0.9);
+}
+
+/* Caption: on the edge opposite the logo, rising in from that edge. Same size as the
+   project taglines under the Works cards. */
+.bracket__desc {
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: var(--pad);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.45);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s var(--ease), transform 0.7s var(--ease);
+}
+.bracket__inner[data-y='bottom'] .bracket__desc { top: var(--pad); bottom: auto; transform: translateY(-10px); }
+.bracket__inner.is-active .bracket__desc { opacity: 1; transform: none; transition-delay: 0.08s; }
+.is-scrolling .bracket { pointer-events: none; }
+
+/* Logos — endless strip of equal-spacing 1000×600 frames */
+.logos__marquee { margin-top: 80px; }
+.marquee {
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y; /* vertical swipes still scroll the page; sideways ones drag the strip */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee.is-dragging { cursor: grabbing; }
+/* Position is driven from JS (LogoMarquee): auto-drift, drag/fling and sideways scroll. */
+.marquee__track { display: flex; width: max-content; will-change: transform; }
+.marquee__frame { position: relative; flex: 0 0 auto; width: 160px; margin-right: 64px; aspect-ratio: 1000 / 600; }
+/* Logos can't be dragged out or selected as images. */
+.marquee__frame img,
+.bracket__logo {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+.marquee__frame img { position: absolute; height: auto; max-width: none; opacity: 0.7; }
 
 /* ---------- Case study ---------- */
 .cs { padding-top: 160px; }
@@ -345,6 +474,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- Responsive ---------- */
 @media (max-width: 1199px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .brackets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .about { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .about__main { grid-column: 1; }
+  .about__photo { grid-column: 2; }
 }
 @media (max-width: 809px) {
   :root { --gutter: 20px; }
@@ -355,8 +488,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .hero__cta { right: var(--gutter); bottom: 40px; }
   .section__head { flex-wrap: wrap; }
   .grid { grid-template-columns: 1fr; }
-  .about { flex-direction: column-reverse; }
-  .about__photo { flex-basis: auto; width: 100%; max-width: 360px; }
+  .about { grid-template-columns: 1fr; gap: 40px; }
+  .about__main { grid-column: 1; }
+  .about__photo { grid-column: 1; grid-row: 1; }
   .about__row { flex-direction: column; gap: 12px; }
   .about__row > dt, .about__row > dd { flex: none; width: 100%; }
   .cs { padding-top: 120px; }
@@ -369,6 +503,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .cs__gallery { width: 100%; padding-top: 60px; }
   /* A live section is unreadable at half a phone's width, so its pair stacks. */
   .cs-pair--section { grid-template-columns: 1fr; }
+  .brackets { grid-template-columns: 1fr; }
+  .logos__marquee { margin-top: 60px; }
+  .marquee__frame { width: 115px; margin-right: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

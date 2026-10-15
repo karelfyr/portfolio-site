@@ -7,6 +7,8 @@ import { Img } from '../components/Img'
 import { useMobileSafeVh } from '../hooks/useMobileSafeVh'
 import { getProject } from '../data/projects'
 import { Appear } from '../components/Appear'
+import { LogoBracket } from '../components/LogoBracket'
+import { logos } from '../data/logos'
 
 // Projects shown in "Selected works", in this order.
 const selectedWorks = ['float', 'pos-digital', 'golfdren']
@@ -73,10 +75,21 @@ export function Home() {
         </div>
       </section>
 
+      {/* Clients, right under the work */}
+      <section className="section section--clients">
+        <div className="container">
+          {/* A quieter label, not a big section title — the logos do the talking. */}
+          <TextEffect as="h2" className="label label--muted" text="Trusted by industry leaders" trigger="inView" per="line" delay={0.2} />
+          <div className="brackets">
+            {logos.map((l) => <LogoBracket key={l.name} logo={l} />)}
+          </div>
+        </div>
+      </section>
+
       <section className="section">
         <div className="container about">
           <div className="about__main">
-            <TextEffect as="h2" className="h2" text={'Glad you’re here.\nA bit about me.'} trigger="inView" per="line" delay={0.2} />
+            <TextEffect as="h2" className="h2" text={'Glad you are here!\nA bit about me.'} trigger="inView" per="line" delay={0.2} />
             <dl className="about__rows">
               {about.map((row) => (
                 <div className="about__row" key={row.label}>
