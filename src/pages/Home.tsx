@@ -12,27 +12,24 @@ import { Appear } from '../components/Appear'
 const selectedWorks = ['float', 'pos-digital', 'golfdren']
 
 const about = [
-  { label: 'What I do', body: ['Finding what makes a brand different, and making it clear – through visuals, words, and intentional design.'] },
-  { label: 'What I stand for', body: ['Fancy brand manuals do not save complicated products and unhappy employees. I design for the real world.'] },
+  { label: 'My focus', body: ['Removing friction and creating beautiful experiences through systems and design.'] },
+  { label: 'Manifesto', body: ['Design is how we do everything. Product, marketing, sales. The way we live.'] },
   {
-    label: 'What got me here',
+    label: 'Education',
     body: [
       "Bachelor's Computer Science",
       "Master's in UX Research",
-      '6 month study program in Turkey',
-      '6 month study program in the United States',
+      '6 month Erasmus at Koç University, Turkey',
+      '6 month Erasmus+ at ASU, Arizona',
     ],
   },
 ]
 
 const timeline = [
-  { when: '2018 – now', what: 'Independent Designer' },
-  { when: '2021 – now', what: 'Kiosk Interface Designer at POS Digital: Projects for KIA, Marriott or Decathlon.' },
-  { when: '2025', what: 'UX Designer at Blackfish.co' },
-  {
-    when: 'May 2026',
-    what: 'Moved to New York to meet founders and creatives, hit hackathons, and get a front-row seat to where creative technology is heading.',
-  },
+  { when: 'Currently', what: 'Freelance design engineer for clients like CertiCon Group' },
+  { when: '2021 – now', what: 'Kiosk UI at POS Digital for KIA, Marriott, Decathlon' },
+  { when: '2025', what: 'UX designer at Blackfish' },
+  { when: 'May 2026', what: 'Moved to New York to work with founders and creatives, and hit hackathons' },
 ]
 
 export function Home() {
@@ -43,10 +40,10 @@ export function Home() {
     <>
       <section className="hero">
         <BlurOnScroll className="hero__content">
-          <TextEffect as="h1" className="hero__title" text={'Really good\ndesigner'} per="word" trigger="appear" delay={0.6} />
+          <TextEffect as="h1" className="hero__title" text="Engineer with designer’s eye" per="word" trigger="appear" delay={0.6} />
           <TextEffect
             className="label hero__sub"
-            text="My name is karel. I design brands, digital products and make videos about it."
+            text="I’m Karel, a kid who loved photography, now building software and brands."
             per="line"
             trigger="appear"
             delay={1.0}
@@ -79,7 +76,7 @@ export function Home() {
       <section className="section">
         <div className="container about">
           <div className="about__main">
-            <TextEffect as="h2" className="h2" text="Who you'll work with" trigger="inView" per="line" delay={0.2} />
+            <TextEffect as="h2" className="h2" text={'Glad you’re here.\nA bit about me.'} trigger="inView" per="line" delay={0.2} />
             <dl className="about__rows">
               {about.map((row) => (
                 <div className="about__row" key={row.label}>
@@ -94,7 +91,7 @@ export function Home() {
                 </div>
               ))}
               <div className="about__row">
-                <Appear as="dt" className="label label--muted" blur>7 years in design</Appear>
+                <Appear as="dt" className="label label--muted" blur>Experience</Appear>
                 <dd className="timeline">
                   {timeline.map((t) => (
                     <Appear key={t.when + t.what} className="timeline__item" blur>
@@ -107,7 +104,7 @@ export function Home() {
             </dl>
           </div>
           <Appear className="about__photo" y={24} duration={1.1}>
-            <Img alt="Karel Fyrbach" />
+            <Img src="/images/Profilovka/pp.webp" alt="Karel Fyrbach" />
           </Appear>
         </div>
       </section>

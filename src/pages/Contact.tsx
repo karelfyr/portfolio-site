@@ -24,7 +24,7 @@ export function Contact() {
         </div>
       </div>
       <Appear className="contact__photo" y={24} duration={1.1}>
-        <Img alt="Karel Fyrbach" />
+        <Img src="/images/Profilovka/pp.webp" alt="Karel Fyrbach" />
       </Appear>
     </section>
   )
