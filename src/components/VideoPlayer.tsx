@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { motion, useIsPresent } from 'motion/react'
 import { muxStream } from '../lib/mux'
-import { isWebKit } from '../lib/browser'
+import { isIOS, isWebKit } from '../lib/browser'
 import { Icon } from './EmailActions'
 
 const fmt = (s: number) => {
@@ -10,9 +10,11 @@ const fmt = (s: number) => {
 }
 
 const ease = [0.22, 1, 0.36, 1] as const
-/** Whether this device lets a page set the volume (iPhone / iPad don't: it stays at 1). */
+/** Whether this device lets a page set the volume. iPhone / iPad ignore it (only the hardware
+ * buttons change it) – and newer iOS even reports the change as applied, so it's detected by
+ * device, with the feature check as a fallback for anything else that ignores it. */
 const canSetVolume = (() => {
-  if (typeof document === 'undefined') return false
+  if (typeof document === 'undefined' || isIOS) return false
   const a = document.createElement('audio')
   a.volume = 0.5
   return a.volume === 0.5

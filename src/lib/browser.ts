@@ -9,6 +9,11 @@ export const isWebKit =
     (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) || // iPadOS desktop UA
     (/AppleWebKit/.test(navigator.userAgent) && !/(Chrome|Chromium|Edg|OPR)\//.test(navigator.userAgent)))
 
+/** iPhone / iPad (any browser – all use WebKit there). Pages can't set the volume on these. */
+export const isIOS =
+  typeof navigator !== 'undefined' &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)))
+
 /** CSS scroll-driven animations (Chrome 115+, Safari 26+): scroll-linked effects off the main thread. */
 export const supportsScrollTimeline =
   typeof CSS !== 'undefined' && CSS.supports('animation-timeline: scroll()')

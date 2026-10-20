@@ -83,7 +83,7 @@ export function IntroVideo({ variant = 'inline' }: Props) {
               <div className="video-modal__frame" onClick={(e) => e.stopPropagation()}>
                 <VideoPlayer playbackId={PLAYBACK_ID} poster={STILL} layoutId={layoutId} enter={ENTER} />
               </div>
-              <button className="video-modal__close label" onClick={() => setOpen(false)} autoFocus>
+              <button className="video-modal__close label" onClick={() => setOpen(false)}>
                 Close
               </button>
             </motion.div>
