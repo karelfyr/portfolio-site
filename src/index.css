@@ -178,15 +178,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 /* Optical kerning: open up the tight "E–Y" pair in "EYE" */
 .hero__title [data-text='eye']::first-letter { margin-right: 0.05em; }
-/* Always exactly two lines (break set in the text): each line stays whole, and the size scales
-   down so the longer line ("…loved photography,") fits the screen on any layout. */
-.hero__sub {
-  color: var(--muted);
-  white-space: nowrap;
-  font-size: min(18px, calc((100vw - 2 * var(--gutter)) / 26));
-  line-height: 1.5;
-  letter-spacing: -0.02em;
-}
 /* Intro video still inside the hero title (IntroVideo). Sized in em, so it scales with the title. */
 /* Fits exactly within the capital letters: the still's top lines up with the cap height
    (0.68em in Switzer) and its caption ends on the baseline. */
@@ -200,6 +191,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   vertical-align: var(--caption);
   cursor: pointer;
   text-transform: uppercase;
+}
+/* Always exactly two lines (break set in the text): each line stays whole, and the size scales
+   down so the longer line fits the screen on any layout. */
+.hero__sub {
+  color: var(--muted);
+  white-space: nowrap;
+  text-transform: none; /* sentence case, unlike other .label text */
+  font-size: min(18px, calc((100vw - 2 * var(--gutter)) / 22));
+  line-height: 1.5;
+  letter-spacing: -0.025em;
 }
 /* Larger standalone still, used on phones under the hero subtitle */
 .hero__video { display: none; }
@@ -799,9 +800,13 @@ html.is-locked { overflow: hidden; }
   /* Phones: the video leaves the title line (so the title can be bigger) and sits below
      the subtitle as a larger still instead. */
   .hero__title .te-insert { display: none; }
-  .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 7.6); }
-  .hero__video { display: block; order: 1; margin-top: 8px; }
-  .hero__sub { order: 2; } /* “I’m Karel…” sits under the video */
+  /* Phones: one word per line, left-aligned, sized so the longest word ("DESIGNER'S") spans
+     gutter to gutter. Subtitle and reel line up on the same left edge. */
+  .hero__content { align-items: flex-start; text-align: left; }
+  .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 5.2); line-height: 0.92; }
+  .hero__title > span { display: block; }
+  .hero__video { display: block; align-self: stretch; margin-top: 12px; } /* the reel sits under the subtitle */
+  .hero__video .intro-thumb--block { width: 100%; } /* side to side, inside the page gutter */
   .section__head { flex-wrap: wrap; }
   .grid { grid-template-columns: 1fr; }
   .about { grid-template-columns: 1fr; gap: 40px; }

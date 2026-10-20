@@ -57,17 +57,17 @@ export function Home() {
             inserts={{ '[video]': <IntroVideo /> }} per="word" trigger="appear" delay={0.6} />
           <TextEffect
             className="label hero__sub"
-            text={'I’m Karel, once a kid who loved photography,\nnow building software and brands.'}
+            text={'Once a kid who loved photography,\nnow building software and brands.'}
             per="line"
             trigger="appear"
             delay={1.0}
           />
-          {/* Phones: the intro video gets its own, bigger still between the title and the subtitle */}
+          {/* Phones: the intro video gets its own, bigger still under the subtitle */}
           <motion.div
             className="hero__video"
             initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.9 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 1.3 }}
           >
             <IntroVideo variant="block" />
           </motion.div>
