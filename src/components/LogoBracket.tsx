@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent } from 'react'
 import type { Logo } from '../data/logos'
 import { Appear } from './Appear'
+import { bindShortWords } from '../lib/typography'
 
 /** Logos sit a touch smaller than in the Figma cards. */
 const LOGO_SCALE = 0.8
@@ -138,7 +139,7 @@ export function LogoBracket({ logo }: { logo: Logo }) {
           draggable={false}
           style={{ width: `${width}cqw` }}
         />
-        <p className="bracket__desc">{logo.description}</p>
+        <p className="bracket__desc">{bindShortWords(logo.description)}</p>
       </div>
     </Appear>
   )

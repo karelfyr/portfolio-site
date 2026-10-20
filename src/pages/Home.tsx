@@ -11,6 +11,7 @@ import { Appear } from '../components/Appear'
 import { IntroVideo } from '../components/IntroVideo'
 import { LogoBracket } from '../components/LogoBracket'
 import { logos } from '../data/logos'
+import { bindShortWords } from '../lib/typography'
 
 // Projects shown in "Selected works", in this order.
 const selectedWorks = ['float', 'pos-digital', 'golfdren']
@@ -120,7 +121,7 @@ export function Home() {
                     {row.body.length === 1 ? (
                       <TextEffect text={row.body[0]} trigger="inView" per="line" delay={0.2} />
                     ) : (
-                      row.body.map((line) => <Appear as="p" key={line} blur>{line}</Appear>)
+                      row.body.map((line) => <Appear as="p" key={line} blur>{bindShortWords(line)}</Appear>)
                     )}
                   </dd>
                 </div>
@@ -131,7 +132,7 @@ export function Home() {
                   {timeline.map((t) => (
                     <Appear key={t.when + t.what} className="timeline__item" blur>
                       <p className="timeline__when">{t.when}</p>
-                      <p className="body">{t.what}</p>
+                      <p className="body">{bindShortWords(t.what)}</p>
                     </Appear>
                   ))}
                 </dd>

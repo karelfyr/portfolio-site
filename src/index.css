@@ -586,8 +586,8 @@ html.is-locked { overflow: hidden; }
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 40px;
-    padding: calc(var(--pad) + 4px) var(--pad) var(--pad); /* bottom = sides */
+    gap: 48px;
+    padding: 24px 20px 20px;
   }
   .bracket__logo {
     position: static;
@@ -602,7 +602,7 @@ html.is-locked { overflow: hidden; }
   /* Phones: no hover light, so the card needs a clearer edge and caption */
   .bracket__inner { border-color: rgba(255, 255, 255, 0.24); }
   /* 13px: the smallest comfortable size for reading body text on a phone */
-  .bracket__desc { color: rgba(255, 255, 255, 0.68); font-size: 13px; line-height: 20px; letter-spacing: 0.01em; }
+  .bracket__desc { max-width: 85%; color: rgba(255, 255, 255, 0.68); font-size: 13px; font-weight: 500; line-height: 20px; letter-spacing: 0.02em; }
 }
 
 /* Logos — endless strip of equal-spacing 1000×600 frames */
@@ -724,11 +724,12 @@ html.is-locked { overflow: hidden; }
 
 /* Contact: the same two actions as buttons, both secondary. Desktop: they sit on top of the
    address and swap in on hover / focus – the layout never changes. Touch: shown below it. */
-.email-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+/* Two equal-width buttons whose layout never changes (labels like "Copied" can't move them):
+   stacked full width on touch screens, side by side on desktop (see the hover block below). */
+.email-buttons { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; max-width: 400px; margin-top: 12px; }
 .btn--ghost { gap: 8px; background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
 .btn--ghost:hover { background: transparent; box-shadow: inset 0 0 0 1px var(--fg); }
-.contact__email-line { position: relative; }
-.email-buttons__copy { min-width: 132px; } /* fits "Copy email", so "Copied" doesn't shift the next button */
+.contact__email-line { position: relative; align-self: stretch; } /* full width, so stacked phone buttons span it */
 .email-buttons__label { display: inline-flex; align-items: center; gap: 8px; }
 /* The address recedes like everything else on the site leaves: fades, blurs and sinks back. */
 .contact__address {
@@ -745,7 +746,11 @@ html.is-locked { overflow: hidden; }
     left: 0;
     top: calc(50% + 6px); /* centred on the address, nudged clear of the "Email" label */
     margin: 0;
-    flex-wrap: nowrap;
+    /* Side by side, both as wide as the wider one */
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    width: max-content;
     transform: translateY(-50%);
     pointer-events: none;
   }
@@ -825,10 +830,11 @@ html.is-locked { overflow: hidden; }
   .contact__photo { grid-column: 1; }
   .cs__body { flex-direction: column; gap: 0; }
   .cs__info { position: static; max-width: none; padding-top: 60px; }
+  .cs__info .body { max-width: 85%; } /* intro and facts: same 85% measure as the logo cards */
   .cs__gallery { width: 100%; padding-top: 60px; }
   /* A live section is unreadable at half a phone's width, so its pair stacks. */
   .cs-pair--section { grid-template-columns: 1fr; }
-  .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 16px; } /* one per row: each card its own height */
+  .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 12px; } /* one per row: each card its own height */
   .logos__marquee { margin-top: 60px; }
   .marquee__frame { width: 115px; margin-right: 40px; }
 }

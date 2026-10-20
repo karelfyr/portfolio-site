@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type ElementType, type Reac
 import { motion, useReducedMotion } from 'motion/react'
 import { useQueuedReveal } from '../lib/revealQueue'
 import { isWebKit } from '../lib/browser'
+import { bindShortWords } from '../lib/typography'
 
 type Props = {
   /** Text to animate. Use "\n" to force a line break. */
@@ -49,7 +50,8 @@ export function TextEffect({
   const [lineOf, setLineOf] = useState<number[] | null>(null)
   const step = stagger ?? (per === 'line' ? 0.12 : 0.06)
 
-  const lines = text.split('\n')
+  // Short function words stay with the next word (they become one animated unit, too).
+  const lines = bindShortWords(text).split('\n')
   const words = lines.flatMap((line, li) =>
     line.split(' ').filter(Boolean).map((w, wi, arr) => ({ w, br: wi === arr.length - 1 && li < lines.length - 1 })),
   )

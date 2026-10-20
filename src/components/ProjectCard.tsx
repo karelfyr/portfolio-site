@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Project } from '../data/projects'
 import { Img } from './Img'
 import { Appear } from './Appear'
+import { bindShortWords } from '../lib/typography'
 
 export function ProjectCard({ project }: { project: Project }) {
   return (
@@ -13,7 +14,7 @@ export function ProjectCard({ project }: { project: Project }) {
         </div>
         <div className="card__text">
           <h3 className="card__title">{project.title}</h3>
-          <p className="card__tagline">{project.tagline}</p>
+          <p className="card__tagline">{bindShortWords(project.tagline)}</p>
         </div>
       </Link>
     </Appear>
