@@ -198,8 +198,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   color: var(--muted);
   white-space: nowrap;
   text-transform: none; /* sentence case, unlike other .label text */
-  font-size: min(18px, calc((100vw - 2 * var(--gutter)) / 22));
-  line-height: 1.5;
+  font-size: min(20px, calc((100vw - 2 * var(--gutter)) / 22));
+  line-height: 1.45;
   letter-spacing: -0.025em;
 }
 /* Larger standalone still, used on phones under the hero subtitle */
@@ -586,8 +586,8 @@ html.is-locked { overflow: hidden; }
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 64px;
-    padding: var(--pad) calc(var(--pad) - 4px) calc(var(--pad) - 4px); /* bottom = sides */
+    gap: 40px;
+    padding: calc(var(--pad) + 4px) var(--pad) var(--pad); /* bottom = sides */
   }
   .bracket__logo {
     position: static;
@@ -595,12 +595,14 @@ html.is-locked { overflow: hidden; }
     opacity: 1;
     width: calc(var(--lw) * 0.88) !important; /* overrides the inline desktop width */
   }
+  .bracket__logo[alt='Kia'] { width: calc(var(--lw) * 0.88 * 0.8) !important; } /* reads heavier than the rest */
   /* Pinned to the bottom, so the bottom inset always equals the sides even when cards in a row
      are stretched to the same height; any extra room goes into the gap above the caption. */
   .bracket__desc { position: static; opacity: 1; transform: none; margin-top: auto; }
   /* Phones: no hover light, so the card needs a clearer edge and caption */
   .bracket__inner { border-color: rgba(255, 255, 255, 0.24); }
-  .bracket__desc { color: rgba(255, 255, 255, 0.68); }
+  /* 13px: the smallest comfortable size for reading body text on a phone */
+  .bracket__desc { color: rgba(255, 255, 255, 0.68); font-size: 13px; line-height: 20px; letter-spacing: 0.01em; }
 }
 
 /* Logos — endless strip of equal-spacing 1000×600 frames */
@@ -803,6 +805,7 @@ html.is-locked { overflow: hidden; }
   /* Phones: one word per line, left-aligned, sized so the longest word ("DESIGNER'S") spans
      gutter to gutter. Subtitle and reel line up on the same left edge. */
   .hero__content { align-items: flex-start; text-align: left; }
+  .hero__sub { font-size: 16px; }
   .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 5.2); line-height: 0.92; }
   .hero__title > span { display: block; }
   .hero__video { display: block; align-self: stretch; margin-top: 12px; } /* the reel sits under the subtitle */
@@ -825,7 +828,7 @@ html.is-locked { overflow: hidden; }
   .cs__gallery { width: 100%; padding-top: 60px; }
   /* A live section is unreadable at half a phone's width, so its pair stacks. */
   .cs-pair--section { grid-template-columns: 1fr; }
-  .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; } /* one per row: each card its own height */
+  .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 16px; } /* one per row: each card its own height */
   .logos__marquee { margin-top: 60px; }
   .marquee__frame { width: 115px; margin-right: 40px; }
 }
