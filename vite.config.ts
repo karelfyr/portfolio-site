@@ -57,4 +57,6 @@ function imageSizes(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), imageSizes()],
+  // In development the API runs separately (npm run dev:server); in production one server does both.
+  server: { proxy: { '/api': 'http://localhost:8787' } },
 })

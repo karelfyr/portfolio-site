@@ -24,6 +24,8 @@ export type Project = {
   cover?: Src
   categories: Category[]
   featured?: boolean
+  /** Kept in the data but not shown anywhere (no card, no case study page). */
+  hidden?: boolean
   // Case study
   hero?: Src
   /** A live coded section shown instead of the hero image. */
@@ -164,6 +166,7 @@ const allProjects: Project[] = [
     // TODO: placeholder lorem ipsum and empty images — replace with Decathlon's own copy and images.
     slug: 'decathlon',
     title: 'Decathlon',
+    hidden: true,
     tagline: 'Navigation kiosk design',
     categories: ['visuals-interfaces'],
     featured: true,
@@ -179,6 +182,7 @@ const allProjects: Project[] = [
     // TODO: placeholder lorem ipsum and empty images — replace with Blackfish's own copy and images.
     slug: 'blackfish',
     title: 'Blackfish',
+    hidden: true,
     tagline: 'Design agency work',
     categories: ['brands-products'],
     featured: true,
@@ -200,6 +204,8 @@ const rank = (p: Project) => {
   return i === -1 ? order.length : i
 }
 
-export const projects = [...allProjects].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title))
+export const projects = allProjects
+  .filter((p) => !p.hidden)
+  .sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title))
 
 export const getProject =(slug?: string) => projects.find((p) => p.slug === slug)

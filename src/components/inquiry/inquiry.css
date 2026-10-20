@@ -1,0 +1,160 @@
+/* Project inquiry flow — narrow dialog for the questions, full booking layout for the calendar. */
+
+.iq-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.82);
+}
+.iq {
+  --line: rgba(255, 255, 255, 0.08);
+  position: relative;
+  width: min(580px, 100%);
+  /* One fixed size for every step – the window never resizes between steps */
+  height: min(720px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  background: #111;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--font-ui);
+}
+.iq button { cursor: pointer; }
+.iq button:disabled { cursor: default; }
+.iq-wide { cursor: default; }
+
+.iq__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 0 32px;
+  min-height: 56px;
+}
+.iq__progress { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.iq__bars { display: flex; gap: 4px; }
+.iq__bars i { width: 24px; height: 2px; background: rgba(255, 255, 255, 0.15); transition: background 0.3s var(--ease); }
+.iq__bars i.is-done { background: var(--fg); }
+.iq__eta { font-size: 13px; color: var(--dim); }
+.iq__close { display: grid; place-items: center; width: 36px; height: 36px; color: var(--muted); transition: color 0.3s var(--ease); }
+.iq__close:hover { color: var(--fg); }
+
+/* Fixed frame: the step fills it, its actions sit on the bottom edge, and a step taller than a
+   short screen scrolls inside. */
+.iq__body { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.iq__step { min-height: 100%; padding: 16px 32px 32px; display: flex; flex-direction: column; gap: 24px; }
+.iq__step form { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+.iq__actions, .iq__foot { margin-top: auto; }
+.iq__sent { flex: 1; justify-content: center; }
+
+.iq__title { font-size: 26px; font-weight: 500; line-height: 1.15; letter-spacing: -0.02em; }
+.iq__sub { margin-top: -12px; font-family: var(--font-body); font-size: 15px; line-height: 22px; color: var(--muted); }
+.iq__foot { font-size: 14px; color: var(--muted); }
+.iq__foot a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+/* State 0 cards */
+.iq__cards { display: grid; gap: 8px; }
+.iq__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 20px 56px 20px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  text-align: left;
+  transition: background 0.25s var(--ease), border-color 0.25s var(--ease), color 0.25s var(--ease);
+}
+.iq__card--primary { background: #1c1c1c; border-color: rgba(255, 255, 255, 0.22); }
+.iq__card:hover { background: var(--fg); border-color: var(--fg); color: #000; }
+.iq__card-title { font-size: 18px; font-weight: 500; }
+.iq__card-text { font-family: var(--font-body); font-size: 15px; line-height: 22px; color: var(--muted); transition: color 0.25s var(--ease); }
+.iq__card:hover .iq__card-text { color: rgba(0, 0, 0, 0.65); }
+.iq__card .iq__arrow { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); transition: transform 0.3s var(--ease); }
+.iq__card:hover .iq__arrow { transform: translate(4px, -50%); }
+
+/* Questions + chips */
+.iq__q { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.iq__q legend { padding: 0; margin-bottom: 12px; }
+.iq__hint { text-transform: none; letter-spacing: 0; color: var(--dim); }
+.iq__chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.iq__chip {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: left;
+  color: var(--fg);
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.iq__chip:hover { border-color: rgba(255, 255, 255, 0.4); }
+.iq__chip[aria-pressed='true'] { background: var(--fg); border-color: var(--fg); color: #000; }
+
+/* Fields */
+.iq__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.iq__field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.iq__field input, .iq__field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: var(--fg);
+  font: 15px/22px var(--font-body);
+  resize: vertical;
+  transition: border-color 0.25s var(--ease);
+}
+.iq__field textarea::placeholder { color: var(--dim); }
+.iq__field input:focus, .iq__field textarea:focus { outline: none; border-color: var(--fg); }
+.iq__error { color: #ff8a7a; font-size: 13px; }
+
+/* Actions */
+/* Pinned to the bottom of the frame: on a short screen the questions scroll, the buttons stay */
+.iq__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  margin-bottom: -12px;
+  background: #111;
+  box-shadow: 0 -16px 16px -4px #111; /* soft fade where scrolled content passes under */
+}
+.iq__actions .btn { gap: 8px; }
+.iq .btn:disabled { opacity: 0.35; transform: none; }
+.iq__back { color: var(--muted); transition: color 0.3s var(--ease); }
+.iq__back:hover { color: var(--fg); }
+.iq__alt {
+  align-self: flex-end;
+  margin-top: -12px;
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.3s var(--ease);
+}
+.iq__alt:hover { color: var(--fg); }
+
+/* Success */
+.iq__sent { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; padding: 8px 0; }
+.iq__sent .iq__sub { margin-top: -8px; }
+.iq__check { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--fg); color: #000; }
+
+/* Phone: a bottom sheet */
+@media (max-width: 809px) {
+  .iq-backdrop { padding: 0; place-items: end stretch; }
+  .iq { width: 100%; height: 85vh; border-width: 1px 0 0; }
+  .iq__head { padding: 16px 12px 0 20px; }
+  .iq__step { padding: 12px 20px calc(24px + env(safe-area-inset-bottom)); }
+  .iq__row { grid-template-columns: 1fr; }
+  .iq__actions { padding-bottom: calc(12px + env(safe-area-inset-bottom)); } /* clear of the iPhone home bar */
+  .iq__chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .iq__title { font-size: 22px; }
+  .iq-backdrop .iq-wide { align-self: stretch; }
+}

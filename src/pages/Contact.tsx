@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { TextEffect } from '../components/TextEffect'
 import { Appear } from '../components/Appear'
 import { Img } from '../components/Img'
+import { EMAIL, EmailButtons, Icon, LINKEDIN } from '../components/EmailActions'
 
 export function Contact() {
+  // After copying, the buttons stay up (showing "Copied") a while, even if the mouse has left.
+  const [holding, setHolding] = useState(false)
   return (
     <section className="page container contact">
       <div className="contact__main">
@@ -10,15 +14,25 @@ export function Contact() {
         <div className="contact__row">
           <TextEffect
             className="body contact__intro"
-            text="Let’s create something meaningful together. I’d love to hear about your project, big or small."
+            text="Let’s create something meaningful."
             per="line"
             trigger="inView"
             delay={0.2}
           />
           <div className="contact__details">
-            <Appear as="p" className="label label--muted" blur>Email &amp; phone</Appear>
-            <Appear blur>
-              <a className="body link-hover" href="mailto:karelfyrbach@gmail.com">karelfyrbach@gmail.com</a>
+            <Appear className={`contact__email${holding ? ' is-holding' : ''}`} blur>
+              <p className="label label--muted">Email</p>
+              {/* Hover / focus: the buttons take the address's place */}
+              <div className="contact__email-line">
+                <p className="body contact__address">{EMAIL}</p>
+                <EmailButtons onCopied={setHolding} />
+              </div>
+            </Appear>
+            <Appear className="contact__linkedin" blur>
+              <p className="label label--muted">LinkedIn</p>
+              <a className="body contact__link" href={LINKEDIN} target="_blank" rel="noreferrer">
+                Karel Fyrbach <Icon name="out" />
+              </a>
             </Appear>
           </div>
         </div>

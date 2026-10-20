@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { TextEffect } from '../components/TextEffect'
@@ -30,13 +31,22 @@ const about = [
 
 const timeline = [
   { when: '2020 – now', what: 'Freelance Design Engineer' },
-  { when: 'May 2026', what: 'Moved to New York to learn about trends in product building through meeting founders and attending events and hackathons.' },
+  { when: 'May 2026', what: 'Moved to New York for 3 months to learn about trends in product building through events, conferences and meetings with founders.' },
   { when: '2024', what: 'UX designer at Blackfish – Czech digital product studio' },
-  { when: '2021 – now', what: 'Digital Kiosk Designer at POS Digital (designed for KIA, Marriott, Decathlon and more)' },
+  { when: '2022 – now', what: 'Digital Kiosk Designer at POS Digital (designed for KIA, Marriott, Decathlon and more)' },
 ]
 
 export function Home() {
   useMobileSafeVh()
+  // The pinned "Work with me" steps aside once the footer (Reach out + email) is on screen.
+  const [footerInView, setFooterInView] = useState(false)
+  useEffect(() => {
+    const footer = document.querySelector('.footer')
+    if (!footer) return
+    const io = new IntersectionObserver(([e]) => setFooterInView(e.isIntersecting))
+    io.observe(footer)
+    return () => io.disconnect()
+  }, [])
   const featured = selectedWorks.map((slug) => getProject(slug)).filter((p) => p !== undefined)
 
   return (
@@ -47,7 +57,7 @@ export function Home() {
             inserts={{ '[video]': <IntroVideo /> }} per="word" trigger="appear" delay={0.6} />
           <TextEffect
             className="label hero__sub"
-            text="I’m Karel, once a kid who loved photography, now building software and brands."
+            text={'I’m Karel, once a kid who loved photography,\nnow building software and brands.'}
             per="line"
             trigger="appear"
             delay={1.0}
@@ -64,9 +74,10 @@ export function Home() {
         </BlurOnScroll>
         <motion.div
           className="hero__cta"
+          style={{ pointerEvents: footerInView ? 'none' : undefined }}
           initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 1.3 }}
+          animate={footerInView ? { opacity: 0, y: 16, filter: 'blur(0px)' } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: footerInView ? 0.4 : 0.9, ease: [0.22, 1, 0.36, 1], delay: footerInView ? 0 : 1.3 }}
         >
           <Link to="/contact" className="btn">Work with me</Link>
         </motion.div>

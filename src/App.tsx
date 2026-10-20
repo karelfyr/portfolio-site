@@ -23,6 +23,7 @@ export default function App() {
           <Route path="/works/:slug" element={<CaseStudy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/logos" element={<Logos />} />
+          {/* Booking (/book, /start) is built but parked until Google Calendar + Resend are set up — see docs/booking-setup.md */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

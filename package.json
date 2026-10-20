@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "node --env-file-if-exists=.env --watch server/index.ts",
     "build": "tsc -b && vite build",
+    "google:auth": "node --env-file-if-exists=.env scripts/google-auth.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -29,5 +31,8 @@
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }

@@ -178,7 +178,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 /* Optical kerning: open up the tight "E–Y" pair in "EYE" */
 .hero__title [data-text='eye']::first-letter { margin-right: 0.05em; }
-.hero__sub { color: var(--muted); max-width: 720px; text-wrap: balance; font-size: 18px; line-height: 1.5; letter-spacing: -0.02em; }
+/* Always exactly two lines (break set in the text): each line stays whole, and the size scales
+   down so the longer line ("…loved photography,") fits the screen on any layout. */
+.hero__sub {
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: min(18px, calc((100vw - 2 * var(--gutter)) / 26));
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
 /* Intro video still inside the hero title (IntroVideo). Sized in em, so it scales with the title. */
 /* Fits exactly within the capital letters: the still's top lines up with the cap height
    (0.68em in Switzer) and its caption ends on the baseline. */
@@ -449,14 +457,27 @@ html.is-locked { overflow: hidden; }
 .works__empty { margin-top: 40px; }
 
 /* Contact */
-.contact { display: flex; justify-content: space-between; gap: 40px; }
-.contact__main { flex: 0 1 747px; display: flex; flex-direction: column; gap: 40px; }
+/* Same 3-column grid as the About section, so the photo is the same size on both pages */
+.contact { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.contact__main { grid-column: 1 / 3; max-width: 747px; display: flex; flex-direction: column; gap: 40px; }
 .contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 .contact__intro { max-width: 300px; }
-.contact__details { display: flex; flex-direction: column; gap: 6px; }
-.contact__photo { flex: 0 0 374px; align-self: flex-start; aspect-ratio: 374 / 467; overflow: hidden; }
+.contact__details { display: flex; flex-direction: column; gap: 28px; }
+.contact__email, .contact__linkedin { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.contact__link { display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.3s var(--ease); }
+.contact__link:hover { opacity: 0.6; }
+.contact__photo { grid-column: 3; align-self: start; aspect-ratio: 280 / 376; overflow: hidden; }
 .contact__photo img { width: 100%; height: 100%; object-fit: cover; }
 .notfound__back { margin-top: 40px; }
+
+/* Book a call (concept) */
+.book { display: flex; flex-direction: column; align-items: flex-start; gap: 40px; }
+.book__intro { max-width: 420px; color: var(--muted); }
+.book__details { display: flex; flex-direction: column; gap: 20px; max-width: 520px; }
+.book__detail { display: grid; grid-template-columns: 140px 1fr; gap: 20px; align-items: baseline; }
+@media (max-width: 809px) {
+  .book__detail { grid-template-columns: 1fr; gap: 6px; }
+}
 
 /* Logos — bracket cards (Figma 367:1964, card 1117×514) */
 /* Tighter 10px gutters than the Works grid; 40px under the title. */
@@ -556,7 +577,7 @@ html.is-locked { overflow: hidden; }
 }
 .bracket__inner[data-y='bottom'] .bracket__desc { top: var(--pad); bottom: auto; transform: translateY(-10px); }
 .bracket__inner.is-active .bracket__desc { opacity: 1; transform: none; transition-delay: 0.08s; }
-/* Touch screens (no hover): a static card — logo top-left at full brightness and 10% larger,
+/* Touch screens (no hover): a static card — logo top-left at full brightness and a touch smaller,
    caption below it with a fixed gap, slightly tighter padding. */
 @media (hover: none) {
   .bracket__inner {
@@ -571,11 +592,14 @@ html.is-locked { overflow: hidden; }
     position: static;
     transform: none;
     opacity: 1;
-    width: calc(var(--lw) * 1.1) !important; /* overrides the inline desktop width */
+    width: calc(var(--lw) * 0.88) !important; /* overrides the inline desktop width */
   }
   /* Pinned to the bottom, so the bottom inset always equals the sides even when cards in a row
      are stretched to the same height; any extra room goes into the gap above the caption. */
   .bracket__desc { position: static; opacity: 1; transform: none; margin-top: auto; }
+  /* Phones: no hover light, so the card needs a clearer edge and caption */
+  .bracket__inner { border-color: rgba(255, 255, 255, 0.24); }
+  .bracket__desc { color: rgba(255, 255, 255, 0.68); }
 }
 
 /* Logos — endless strip of equal-spacing 1000×600 frames */
@@ -660,6 +684,95 @@ html.is-locked { overflow: hidden; }
 .footer__row { display: flex; justify-content: space-between; align-items: flex-end; }
 .footer__links { display: flex; gap: 24px; }
 
+/* Email as text; hover / tap / focus opens "Open in email app · Copy to clipboard" above it */
+.email-menu { position: relative; display: inline-flex; }
+.email-menu__address { color: var(--fg); text-transform: none; letter-spacing: 0; transition: opacity 0.3s var(--ease); }
+.email-menu__address:hover, .email-menu__address[aria-expanded='true'] { opacity: 0.6; }
+.email-menu__pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+/* Invisible bridge across the gap, so the menu stays open while the mouse moves up into it */
+.email-menu__pop::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 12px; }
+.email-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--fg);
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.2s var(--ease);
+}
+.email-menu__item:hover, .email-menu__item:focus-visible { background: rgba(255, 255, 255, 0.08); outline: none; }
+.email-menu__item svg { color: var(--muted); }
+
+/* Contact: the same two actions as buttons, both secondary. Desktop: they sit on top of the
+   address and swap in on hover / focus – the layout never changes. Touch: shown below it. */
+.email-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.btn--ghost { gap: 8px; background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
+.btn--ghost:hover { background: transparent; box-shadow: inset 0 0 0 1px var(--fg); }
+.contact__email-line { position: relative; }
+.email-buttons__copy { min-width: 132px; } /* fits "Copy email", so "Copied" doesn't shift the next button */
+.email-buttons__label { display: inline-flex; align-items: center; gap: 8px; }
+/* The address recedes like everything else on the site leaves: fades, blurs and sinks back. */
+.contact__address {
+  transform-origin: left center;
+  transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease);
+}
+@media (hover: hover) {
+  /* A larger, invisible hover area: past the text on every side and as wide as both buttons,
+     so the buttons appear when the cursor is near the address, not only exactly on it. */
+  .contact__email { position: relative; min-width: 340px; }
+  .contact__email::before { content: ''; position: absolute; inset: -14px -20px -14px -16px; }
+  .contact__email-line .email-buttons {
+    position: absolute;
+    left: 0;
+    top: calc(50% + 6px); /* centred on the address, nudged clear of the "Email" label */
+    margin: 0;
+    flex-wrap: nowrap;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  /* Buttons come in the way text reveals do: from a soft blur, rising slightly. */
+  .contact__email-line .btn {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(8px);
+    transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease), box-shadow 0.3s var(--ease);
+  }
+  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .contact__address {
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(0.96);
+  }
+  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .email-buttons { pointer-events: auto; }
+  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .btn {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .btn + .btn {
+    transition-delay: 0.07s, 0.07s, 0.07s, 0s;
+  }
+}
+
+
+
+
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1199px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -667,6 +780,9 @@ html.is-locked { overflow: hidden; }
   .about { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .about__main { grid-column: 1; }
   .about__photo { grid-column: 2; }
+  .contact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .contact__main { grid-column: 1; }
+  .contact__photo { grid-column: 2; }
 }
 @media (max-width: 809px) {
   :root { --gutter: 20px; }
@@ -675,7 +791,6 @@ html.is-locked { overflow: hidden; }
   .nav__menu { display: block; }
   .nav__sheet-link.h2 { font-size: 48px; }
   .hero__cta { bottom: 20px; }
-  .hero__sub { font-size: 13px; max-width: 300px; }
   /* Phone: timeline gets its own full-width row above the toggles */
   .player__controls { flex-wrap: wrap; gap: 8px 12px; }
   .player__pause { min-width: 0; }
@@ -696,9 +811,10 @@ html.is-locked { overflow: hidden; }
   .about__row > dt, .about__row > dd { flex: none; width: 100%; }
   .cs { padding-top: 120px; }
   .page { padding-top: 120px; padding-bottom: 100px; }
-  .contact { flex-direction: column; }
+  .contact { grid-template-columns: 1fr; gap: 40px; }
+  .contact__main { grid-column: 1; }
   .contact__row { grid-template-columns: 1fr; gap: 24px; }
-  .contact__photo { flex-basis: auto; width: 100%; max-width: 374px; }
+  .contact__photo { grid-column: 1; }
   .cs__body { flex-direction: column; gap: 0; }
   .cs__info { position: static; max-width: none; padding-top: 60px; }
   .cs__gallery { width: 100%; padding-top: 60px; }
