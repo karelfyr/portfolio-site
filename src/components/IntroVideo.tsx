@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { setScrollLocked } from './SmoothScroll'
-import { VideoPlayer } from './VideoPlayer'
+import { VideoPlayer, prepareVideo } from './VideoPlayer'
 import { muxStill } from '../lib/mux'
 import { isWebKit } from '../lib/browser'
 
@@ -55,7 +55,10 @@ export function IntroVideo({ variant = 'inline' }: Props) {
 
   return (
     <>
-      <button className={`intro-thumb intro-thumb--${variant}`} onClick={() => setOpen(true)} onPointerEnter={warmUp} aria-label="Play intro video">
+      <button className={`intro-thumb intro-thumb--${variant}`} onClick={() => {
+          prepareVideo() // inside the tap: lets mobile Safari play it, with sound
+          setOpen(true)
+        }} onPointerEnter={warmUp} aria-label="Play intro video">
         <motion.span className="intro-thumb__media" layoutId={layoutId} transition={{ duration: ENTER, ease }}>
           <img src={STILL} alt="" draggable={false} decoding="sync" />
           <span className="intro-thumb__play" aria-hidden />

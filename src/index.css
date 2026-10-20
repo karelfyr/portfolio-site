@@ -308,6 +308,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 /* Once playing, click the picture to pause / play. */
 .player__screen.is-playing .player__video { opacity: 1; pointer-events: auto; cursor: pointer; }
+.player__video-host { display: contents; }
 /* Small "Loading" chip on the still, only before the video first appears. */
 .player__loading {
   position: absolute;
@@ -836,7 +837,7 @@ html.is-locked { overflow: hidden; }
   .nav__sheet-link.h2 { font-size: 48px; }
   .hero__cta { bottom: 20px; }
   /* Phone: timeline gets its own full-width row above the toggles */
-  .player__controls { flex-wrap: wrap; gap: 8px 12px; }
+  .player__controls { flex-wrap: wrap; gap: 8px 20px; } /* 20px: the 44px tap areas don't overlap */
   .player__bar:not(.player__bar--volume) { flex-basis: 100%; order: -1; }
   .player__time { margin-left: auto; }
   /* Phones: the video leaves the title line (so the title can be bigger) and sits below

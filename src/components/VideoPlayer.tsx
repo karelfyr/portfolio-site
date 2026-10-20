@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { motion } from 'motion/react'
+import { motion, useIsPresent } from 'motion/react'
 import { muxStream } from '../lib/mux'
 import { isWebKit } from '../lib/browser'
 import { Icon } from './EmailActions'
@@ -29,6 +29,38 @@ const savedVolume = () => {
   }
 }
 
+/**
+ * Mobile Safari only lets a video play (with sound, and in Low Power Mode at all) when playback is
+ * started by the tap itself. The popup starts playback a moment later, after its grow animation –
+ * so the element is created and "unlocked" inside the tap (play + pause), and the player then uses
+ * that same element.
+ */
+let prepared: HTMLVideoElement | null = null
+const createVideo = () => {
+  const v = document.createElement('video')
+  v.className = 'player__video'
+  v.playsInline = true
+  v.setAttribute('playsinline', '')
+  v.preload = 'auto'
+  return v
+}
+/** Call synchronously in the click / tap that opens the player. */
+export function prepareVideo() {
+  const v = createVideo()
+  v.play()?.catch(() => {}) // no source yet: this only marks the element as started by the user
+  v.pause()
+  prepared = v
+}
+
+/** Keep receiving a drag outside the element (no-op if the pointer is already gone). */
+const capture = (el: HTMLElement, pointerId: number) => {
+  try {
+    el.setPointerCapture(pointerId)
+  } catch {
+    /* pointer no longer active */
+  }
+}
+
 type Props = {
   /** Mux playback ID. */
   playbackId: string
@@ -47,7 +79,8 @@ type Props = {
  * while it begins – and clicking the picture pauses / plays.
  */
 export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) {
-  const video = useRef<HTMLVideoElement>(null)
+  const host = useRef<HTMLDivElement>(null)
+  const video = useRef<HTMLVideoElement | null>(null)
   const bar = useRef<HTMLDivElement>(null)
   const fill = useRef<HTMLDivElement>(null)
   const timeText = useRef<HTMLSpanElement>(null)
@@ -61,10 +94,45 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
   const [paused, setPaused] = useState(false)
   const [ended, setEnded] = useState(false)
 
+  // Closing: the picture shrinks back into the title for a moment – stop the sound right away.
+  const present = useIsPresent()
   useEffect(() => {
-    const v = video.current!
+    if (!present) video.current?.pause()
+  }, [present])
+
+  useEffect(() => {
+    // The element unlocked by the opening tap (see prepareVideo); kept across re-runs.
+    if (!video.current) {
+      video.current = prepared ?? createVideo()
+      prepared = null
+    }
+    const v = video.current
+    host.current!.appendChild(v)
     v.volume = savedVolume()
     let cancelled = false
+
+    const onPlaying = () => {
+      setPlaying(true)
+      setPaused(false)
+      setEnded(false)
+    }
+    const onPause = () => !v.ended && setPaused(true)
+    const onEnded = () => setEnded(true) // fades back to the still
+    const onVolume = () => {
+      setMuted(v.muted)
+      setVolume(v.volume)
+      try {
+        if (v.volume > 0) localStorage.setItem(VOLUME_KEY, String(v.volume))
+      } catch {
+        /* storage blocked: nothing to remember */
+      }
+    }
+    const onClick = () => togglePauseRef.current()
+    v.addEventListener('playing', onPlaying)
+    v.addEventListener('pause', onPause)
+    v.addEventListener('ended', onEnded)
+    v.addEventListener('volumechange', onVolume)
+    v.addEventListener('click', onClick)
     let destroyHls = () => {}
 
     // Streaming starts at once; playback as the grow animation settles, so decoding the first
@@ -81,7 +149,8 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
         if (cancelled) return
         v.muted = true
         setMuted(true)
-        v.play().catch(() => {})
+        // Still refused (e.g. Low Power Mode): wait for a tap on play.
+        v.play().catch(() => !cancelled && setPaused(true))
       })
 
     const src = muxStream(playbackId)
@@ -122,30 +191,45 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
       cancelled = true
       window.clearTimeout(timer)
       cancelAnimationFrame(frame)
+      v.removeEventListener('playing', onPlaying)
+      v.removeEventListener('pause', onPause)
+      v.removeEventListener('ended', onEnded)
+      v.removeEventListener('volumechange', onVolume)
+      v.removeEventListener('click', onClick)
       v.pause()
       destroyHls()
       v.removeAttribute('src')
       v.load()
+      v.remove()
     }
   }, [playbackId, enter])
 
-  // Play / pause / replay – the button under the video, or a click on the picture.
+  // Play / pause / replay – the button under the video, or a tap on the picture. Always acts on the
+  // element directly (inside the tap), so it also starts a video the browser refused to autoplay.
   const togglePause = () => {
     const v = video.current
-    if (!v || !playing) return
+    if (!v) return
     if (ended) {
       v.currentTime = 0
-      v.play()
-    } else if (v.paused) v.play()
+      v.play().catch(() => {})
+    } else if (v.paused) v.play().catch(() => {})
     else v.pause()
   }
+  const togglePauseRef = useRef(togglePause)
+  useEffect(() => {
+    togglePauseRef.current = togglePause
+  })
 
   const toggleSound = () => {
     const v = video.current
     if (!v) return
+    // Read the element, not state: it's the source of truth.
+    const unmute = v.muted || v.volume === 0
     // Unmuting at zero volume would stay silent: come back at half.
-    if (muted && v.volume === 0) v.volume = 0.5
-    v.muted = !muted
+    if (unmute && v.volume === 0) v.volume = 0.5
+    v.muted = !unmute
+    // A paused video that was refused autoplay starts with this tap.
+    if (unmute && v.paused && !v.ended && !playing) v.play().catch(() => {})
   }
 
   const applyVolume = (level: number) => {
@@ -176,34 +260,13 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
         className={`player__screen${playing && !ended ? ' is-playing' : ''}`}
         layoutId={layoutId}
         transition={{ duration: enter, ease }}
+        onClick={() => !playing && paused && togglePause()} // refused autoplay: tap the still to start
       >
         <img className="player__poster" src={poster} alt="" draggable={false} />
-        <video
-          ref={video}
-          className="player__video"
-          playsInline
-          preload="auto"
-          onClick={togglePause}
-          onPlaying={() => {
-            setPlaying(true)
-            setPaused(false)
-            setEnded(false)
-          }}
-          onPause={(e) => !e.currentTarget.ended && setPaused(true)}
-          onEnded={() => setEnded(true)} // fades back to the still
-          onVolumeChange={(e) => {
-            const v = e.currentTarget
-            setMuted(v.muted)
-            setVolume(v.volume)
-            try {
-              if (v.volume > 0) localStorage.setItem(VOLUME_KEY, String(v.volume))
-            } catch {
-              /* storage blocked: nothing to remember */
-            }
-          }}
-        />
+        {/* The <video> element is added here by the effect (see prepareVideo) */}
+        <div className="player__video-host" ref={host} />
         {/* Only before the video first appears: it's buffering behind the still */}
-        {!playing && (
+        {!playing && !paused && (
           <span className="player__loading label" role="status">
             <span className="player__spinner" aria-hidden />
             Loading
@@ -225,7 +288,7 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
         </button>
         {/* Volume where the device allows it (iPhone / iPad: hardware buttons) */}
         {canSetVolume && (
-        <div
+          <div
           className="player__bar player__bar--volume"
           ref={volumeBar}
           role="slider"
@@ -236,8 +299,8 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
           aria-valuenow={Math.round((muted ? 0 : volume) * 100)}
           onPointerDown={(e) => {
             draggingVolume.current = true
-            volumeBar.current!.setPointerCapture(e.pointerId)
             dragVolume(e)
+            capture(volumeBar.current!, e.pointerId)
           }}
           onPointerMove={(e) => draggingVolume.current && dragVolume(e)}
           onPointerUp={() => (draggingVolume.current = false)}
@@ -259,8 +322,8 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
           aria-label="Timeline"
           onPointerDown={(e) => {
             scrubbing.current = true
-            bar.current!.setPointerCapture(e.pointerId)
             seek(e)
+            capture(bar.current!, e.pointerId)
           }}
           onPointerMove={(e) => scrubbing.current && seek(e)}
           onPointerUp={() => (scrubbing.current = false)}
