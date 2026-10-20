@@ -126,6 +126,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--bg);
 }
 .nav__logo {
+  /* Larger tap / click area without moving the text: padding out, matching negative margin in */
+  display: inline-block;
+  padding: 12px 16px 12px 12px;
+  margin: -12px -16px -12px -12px;
   font-family: var(--font-ui);
   font-weight: 500;
   font-size: 15px;

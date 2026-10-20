@@ -15,7 +15,7 @@ export function Nav() {
 
   return (
     <header className="nav">
-      <Link to="/" className="nav__logo">karelfyrbach©</Link>
+      <Link to="/" className="nav__logo">karelfyrbach</Link>
       <nav className="nav__links" aria-label="Main">
         {links.map((l) => (
           <NavLink key={l.to} to={l.to} end className="nav__link label">{l.label}</NavLink>
