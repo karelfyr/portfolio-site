@@ -27,7 +27,8 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <Footer />
+      {/* Contact already is the reach-out page: on phones its footer is just ©2026. */}
+      <Footer compact={pathname === '/contact'} />
     </SmoothScroll>
   )
 }

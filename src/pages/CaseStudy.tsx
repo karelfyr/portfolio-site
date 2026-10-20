@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { TextEffect } from '../components/TextEffect'
 import { Img } from '../components/Img'
 import { Appear } from '../components/Appear'
+import { TagList } from '../components/TagList'
 import { getProject, type GalleryRow, type PairItem, type SectionName } from '../data/projects'
 import { GolfdrenEdges } from '../sections/GolfdrenEdges'
 import { ShortcutsHero } from '../sections/ShortcutsHero'
@@ -98,7 +99,14 @@ export function CaseStudy() {
             {facts.map((f) => (
               <div key={f.label} className="cs__fact">
                 <Appear as="dt" className="label label--muted" blur>{f.label}</Appear>
-                <TextEffect as="dd" className="body" text={f.value} per="line" trigger="inView" delay={0.2} />
+                {f.label === 'Delivered' ? (
+                  // Tags never split; a wrap shows "·" at the end of the line and the start of the next.
+                  <Appear as="dd" className="body" blur>
+                    <TagList value={f.value} />
+                  </Appear>
+                ) : (
+                  <TextEffect as="dd" className="body" text={f.value} per="line" trigger="inView" delay={0.2} />
+                )}
               </div>
             ))}
           </dl>

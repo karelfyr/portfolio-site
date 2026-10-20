@@ -1,17 +1,14 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-
-/** `zoom` is supported in Safari, Chrome, Edge and Firefox 126+; older Firefox falls back to a transform. */
-const canZoom = typeof CSS !== 'undefined' && CSS.supports('zoom', '0.5')
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
  * Renders children at a fixed design size (e.g. a 3840 × 2160 Figma frame) and
  * scales them to the available width, so every px value stays 1:1 with the design.
  *
- * Scaling uses `zoom`, not `transform: scale()`. With a transform, the browser lays the frame out
- * at full design size and composited layers inside it (glass panels, the animated clip camera)
- * get backing stores near 3840 × 2160 × devicePixelRatio² — hundreds of MB, which pushes WebKit
- * into tiling and CPU rasterisation. `zoom` scales layout itself, so layers are painted at the
- * size they're shown.
+ * Scaling uses `transform: scale()`, not `zoom`: a transform lays the frame out at full design
+ * size and only scales the painted result, so text keeps exactly the design's metrics. With
+ * `zoom`, layout happens at the shown size – Safari then rounds the shrunken font sizes to whole
+ * pixels (15px × 0.22 ≈ 3px), every label comes out a different width than designed, and the
+ * Shortcuts columns overlap and clip.
  */
 export function ScaledFrame({
   width,
@@ -37,17 +34,16 @@ export function ScaledFrame({
     return () => ro.disconnect()
   }, [width])
 
-  const inner: CSSProperties = { position: 'absolute', top: 0, left: 0, width, height }
-  if (canZoom) inner.zoom = scale
-  else Object.assign(inner, { transform: `scale(${scale})`, transformOrigin: 'top left' })
-
   return (
     <div
       ref={ref}
       // contain: the frame's layout and paint never leak into (or get invalidated by) the page.
       style={{ position: 'relative', width: '100%', aspectRatio: `${width} / ${height}`, overflow: 'hidden', contain: 'layout paint' }}
     >
-      <div className={className} style={inner}>
+      <div
+        className={className}
+        style={{ position: 'absolute', top: 0, left: 0, width, height, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      >
         {children}
       </div>
     </div>

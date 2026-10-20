@@ -6,6 +6,21 @@
   --rule: #0d0d0d;
   --gutter: 40px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Softer ease-out for things settling back to rest (less of a snap at the start). */
+  --ease-settle: cubic-bezier(0.33, 1, 0.68, 1);
+  /* Smooth glide: no jolt at the start, long gentle finish (LinkedIn returning in the footer). */
+  --ease-glide: cubic-bezier(0.45, 0, 0.15, 1);
+
+  /* Tracking (letter-spacing) – one scale for the whole site, slightly tight by design.
+     The bigger the type, the tighter; caps a touch looser than lowercase at the same size. */
+  --track-hero: -0.045em;        /* hero title */
+  --track-display: -0.035em;     /* section headings, page and case-study titles */
+  --track-caps-strong: -0.03em;  /* medium-weight caps: logo, card titles, buttons */
+  --track-caps: -0.01em;         /* regular caps labels */
+  --track-ui: -0.02em;           /* Inter, sentence case: subtitle, dates, logo captions */
+  --track-body: 0.01em;          /* reading text, and anything 13px or smaller */
+  /* Tight display tracking also shrinks the word spaces; this gives them back. */
+  --word-display: 0.06em;
 
   --font-display: 'Switzer', 'Inter', system-ui, sans-serif;
   --font-ui: 'Inter', system-ui, sans-serif;
@@ -35,7 +50,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-weight: 500;
   font-size: 48px;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-display);
+  word-spacing: var(--word-display);
   text-transform: uppercase;
 }
 .label {
@@ -43,7 +59,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-weight: 400; /* also when used on a heading element */
   font-size: 14px;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: var(--track-caps);
   text-transform: uppercase;
 }
 .label--muted { color: var(--muted); }
@@ -51,7 +67,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 24px;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--track-body);
   text-wrap: balance;
 }
 
@@ -101,7 +117,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-family: var(--font-body);
   font-weight: 500;
   font-size: 15px;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--track-caps-strong);
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow:
@@ -134,7 +150,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-weight: 500;
   font-size: 15px;
   line-height: 18px;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-caps-strong);
   text-transform: uppercase;
 }
 .nav__links { display: flex; gap: 24px; }
@@ -175,7 +191,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   /* The first line (“Engineer [video] with”) is ~9em wide: size the title so it always fits */
   font-size: clamp(28px, calc((100vw - 2 * var(--gutter)) / 9.2), 120px);
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--track-hero);
+  word-spacing: var(--word-display);
   text-transform: uppercase;
   color: var(--fg);
   text-wrap: balance;
@@ -204,7 +221,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   text-transform: none; /* sentence case, unlike other .label text */
   font-size: min(20px, calc((100vw - 2 * var(--gutter)) / 22));
   line-height: 1.45;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--track-ui);
 }
 /* Larger standalone still, used on phones under the hero subtitle */
 .hero__video { display: none; }
@@ -246,7 +263,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-family: var(--font-ui);
   font-size: max(10px, 0.09em);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--track-body);
   color: var(--dim);
   white-space: nowrap;
 }
@@ -399,13 +416,13 @@ html.is-locked { overflow: hidden; }
   font-weight: 500;
   font-size: 18px;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-caps-strong);
   text-transform: uppercase;
 }
 .card__tagline {
   font-size: 15px;
   line-height: 24px;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--track-body);
   color: var(--muted);
 }
 
@@ -431,7 +448,7 @@ html.is-locked { overflow: hidden; }
   font-family: var(--font-ui);
   font-size: 15px;
   line-height: 24px;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-ui);
   color: var(--dim);
 }
 
@@ -442,7 +459,8 @@ html.is-locked { overflow: hidden; }
   font-weight: 500;
   font-size: clamp(48px, 7vw, 72px);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-display);
+  word-spacing: var(--word-display);
   text-transform: uppercase;
 }
 
@@ -468,9 +486,7 @@ html.is-locked { overflow: hidden; }
 .contact__row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 .contact__intro { max-width: 300px; }
 .contact__details { display: flex; flex-direction: column; gap: 28px; }
-.contact__email, .contact__linkedin { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.contact__link { display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.3s var(--ease); }
-.contact__link:hover { opacity: 0.6; }
+.contact__item { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .contact__photo { grid-column: 3; align-self: start; aspect-ratio: 280 / 376; overflow: hidden; }
 .contact__photo img { width: 100%; height: 100%; object-fit: cover; }
 .notfound__back { margin-top: 40px; }
@@ -496,8 +512,8 @@ html.is-locked { overflow: hidden; }
 .bracket { container-type: inline-size; display: flex; flex-direction: column; }
 /* Home: small label above the logo grid instead of a section title */
 .section--clients .brackets { margin-top: 20px; }
-/* Same size as the hero subtitle, slightly tighter */
-.section--clients .label { font-size: 18px; line-height: 1.5; letter-spacing: 0.01em; }
+/* A larger label, just under the hero subtitle; tracking as all caps labels */
+.section--clients .label { font-size: 18px; line-height: 1.5; }
 /* Insets scale with the card (cqw). Logo and caption are placed absolutely so the logo can
    glide between the centre and any corner (see LogoBracket for the direction logic). */
 .bracket__inner {
@@ -573,8 +589,8 @@ html.is-locked { overflow: hidden; }
   bottom: var(--pad);
   font-family: var(--font-ui);
   font-size: 15px;
-  line-height: 20px;
-  letter-spacing: -0.01em;
+  line-height: 22px;
+  letter-spacing: var(--track-ui);
   color: rgba(255, 255, 255, 0.45);
   opacity: 0;
   transform: translateY(10px);
@@ -606,7 +622,7 @@ html.is-locked { overflow: hidden; }
   /* Phones: no hover light, so the card needs a clearer edge and caption */
   .bracket__inner { border-color: rgba(255, 255, 255, 0.24); }
   /* 13px: the smallest comfortable size for reading body text on a phone */
-  .bracket__desc { max-width: 85%; color: rgba(255, 255, 255, 0.68); font-size: 13px; font-weight: 500; line-height: 20px; letter-spacing: 0.02em; }
+  .bracket__desc { max-width: 85%; color: rgba(255, 255, 255, 0.68); font-size: 13px; font-weight: 500; line-height: 20px; letter-spacing: var(--track-body); }
 }
 
 /* Logos — endless strip of equal-spacing 1000×600 frames */
@@ -642,7 +658,8 @@ html.is-locked { overflow: hidden; }
   font-weight: 500;
   font-size: clamp(48px, 7vw, 72px);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-display);
+  word-spacing: var(--word-display);
   text-transform: uppercase;
 }
 /* Real images keep their own proportions — never cropped or scaled out of shape. */
@@ -689,101 +706,92 @@ html.is-locked { overflow: hidden; }
 .footer { border-top: 1px solid var(--rule); padding: 60px 0 40px; }
 .footer__inner { display: flex; flex-direction: column; gap: 40px; }
 .footer__row { display: flex; justify-content: space-between; align-items: flex-end; }
-.footer__links { display: flex; gap: 24px; }
+.footer__links { display: flex; align-items: center; gap: 24px; }
 
-/* Email as text; hover / tap / focus opens "Open in email app · Copy to clipboard" above it */
-.email-menu { position: relative; display: inline-flex; }
-.email-menu__address { color: var(--fg); text-transform: none; letter-spacing: 0; transition: opacity 0.3s var(--ease); }
-.email-menu__address:hover, .email-menu__address[aria-expanded='true'] { opacity: 0.6; }
-.email-menu__pop {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 10px);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  min-width: 220px;
-  padding: 6px;
-  background: #161616;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-}
-/* Invisible bridge across the gap, so the menu stays open while the mouse moves up into it */
-.email-menu__pop::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 12px; }
-.email-menu__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 12px;
-  font-family: var(--font-ui);
-  font-size: 14px;
-  color: var(--fg);
-  text-align: left;
-  white-space: nowrap;
-  transition: background 0.2s var(--ease);
-}
-.email-menu__item:hover, .email-menu__item:focus-visible { background: rgba(255, 255, 255, 0.08); outline: none; }
-.email-menu__item svg { color: var(--muted); }
+/* LinkedIn (and any outbound text link): body text with ↗, dims on hover – same as the email. */
+.link-out { display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.3s var(--ease); }
+.link-out:hover { opacity: 0.6; }
 
-/* Contact: the same two actions as buttons, both secondary. Desktop: they sit on top of the
-   address and swap in on hover / focus – the layout never changes. Touch: shown below it. */
-/* Two equal-width buttons whose layout never changes (labels like "Copied" can't move them):
-   stacked full width on touch screens, side by side on desktop (see the hover block below). */
+/* ── Email: address + "Copy email" / "Open email app" (EmailReveal), footer and Contact ──
+   Two equal-width, secondary buttons whose layout never changes ("Copied" can't move them):
+   stacked full width under the address on touch screens; on desktop they sit over the address,
+   side by side, and swap in on hover / focus. */
+.email-reveal { position: relative; display: flex; flex-direction: column; align-items: flex-start; align-self: stretch; }
 .email-buttons { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; max-width: 400px; margin-top: 12px; }
 .btn--ghost { gap: 8px; background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
 .btn--ghost:hover { background: transparent; box-shadow: inset 0 0 0 1px var(--fg); }
-.contact__email-line { position: relative; align-self: stretch; } /* full width, so stacked phone buttons span it */
 .email-buttons__label { display: inline-flex; align-items: center; gap: 8px; }
-/* The address recedes like everything else on the site leaves: fades, blurs and sinks back. */
-.contact__address {
+/* The address recedes like everything else on the site leaves: fades, blurs and sinks back.
+   Opening uses the snappy transitions on the open-state rules below; the transitions here are the
+   return to rest – a softer ease-out. */
+.email-reveal__address {
   transform-origin: left center;
-  transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease);
+  transition: opacity 0.45s var(--ease-settle), filter 0.5s var(--ease-settle), transform 0.6s var(--ease-settle);
 }
 @media (hover: hover) {
-  /* A larger, invisible hover area: past the text on every side and as wide as both buttons,
-     so the buttons appear when the cursor is near the address, not only exactly on it. */
-  .contact__email { position: relative; min-width: 340px; }
-  .contact__email::before { content: ''; position: absolute; inset: -14px -20px -14px -16px; }
-  .contact__email-line .email-buttons {
+  /* As wide as both buttons (so nothing sits under them), with a larger invisible hover area. */
+  .email-reveal { align-self: flex-start; min-width: 370px; }
+  .email-reveal::before { content: ''; position: absolute; inset: -14px -20px -14px -16px; }
+  .email-reveal .email-buttons {
     position: absolute;
     left: 0;
-    top: calc(50% + 6px); /* centred on the address, nudged clear of the "Email" label */
+    top: calc(50% + 6px); /* centred on the address, nudged clear of a label above it */
     margin: 0;
-    /* Side by side, both as wide as the wider one */
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: 1fr;
+    grid-auto-columns: 1fr; /* side by side, both as wide as the wider one */
     width: max-content;
     transform: translateY(-50%);
     pointer-events: none;
   }
   /* Buttons come in the way text reveals do: from a soft blur, rising slightly. */
-  .contact__email-line .btn {
+  .email-reveal .btn {
     opacity: 0;
     filter: blur(8px);
     transform: translateY(8px);
-    transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease), box-shadow 0.3s var(--ease);
+    /* leaving: slow, soft fade */
+    transition: opacity 0.7s var(--ease-settle), filter 0.8s var(--ease-settle), transform 0.9s var(--ease-settle), box-shadow 0.3s var(--ease);
   }
-  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .contact__address {
+  :is(.email-reveal:hover, .email-reveal:focus-within, .email-reveal.is-holding, .footer__links.is-wide .email-reveal) .email-reveal__address {
     opacity: 0;
     filter: blur(6px);
     transform: scale(0.96);
+    transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease);
   }
-  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .email-buttons { pointer-events: auto; }
-  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .btn {
+  :is(.email-reveal:hover, .email-reveal:focus-within, .email-reveal.is-holding, .footer__links.is-wide .email-reveal) .email-buttons { pointer-events: auto; }
+  :is(.email-reveal:hover, .email-reveal:focus-within, .email-reveal.is-holding, .footer__links.is-wide .email-reveal) .btn {
     opacity: 1;
     filter: blur(0);
     transform: none;
+    transition: opacity 0.4s var(--ease), filter 0.45s var(--ease), transform 0.5s var(--ease), box-shadow 0.3s var(--ease);
   }
-  :is(.contact__email:hover, .contact__email:focus-within, .contact__email.is-holding) .btn + .btn {
+  :is(.email-reveal:hover, .email-reveal:focus-within, .email-reveal.is-holding, .footer__links.is-wide .email-reveal) .btn + .btn {
     transition-delay: 0.07s, 0.07s, 0.07s, 0s;
   }
 }
-
-
-
-
+/* Footer (desktop): LinkedIn sits right after the address and on its centre line. Hovering the
+   email widens its area to fit the buttons and LinkedIn glides aside; the row – buttons included –
+   stays open while the mouse is on it and closes 2 s after leaving (Footer.tsx sets .is-wide), so
+   nothing moves or disappears while you reach for LinkedIn. */
+.footer__email { display: flex; flex-direction: column; }
+@media (hover: hover) {
+  /* LinkedIn glides back: eases in gently and settles with a long, smooth tail. */
+  .footer .email-reveal { min-width: var(--rest-w, 0px); transition: min-width 0.9s var(--ease-glide); }
+  .footer__links.is-wide .email-reveal,
+  .footer .email-reveal.is-holding { min-width: 370px; transition: min-width 0.5s var(--ease); }
+  .footer .email-reveal .email-buttons { top: 50%; } /* no label above here: centre exactly */
+}
+/* Touch: footer stacks like the Contact page – email, its buttons, then LinkedIn. */
+@media (hover: none) {
+  .footer__links { flex-direction: column; align-items: stretch; gap: 20px; }
+  .footer__row { flex-direction: column; align-items: stretch; gap: 32px; }
+}
+/* Phone, Contact page: the page itself is the reach-out, so the footer is just ©2026. */
+@media (max-width: 809px) {
+  .footer--compact { padding-top: 32px; }
+  .footer--compact .h2,
+  .footer--compact .footer__links { display: none; }
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1199px) {
@@ -834,10 +842,9 @@ html.is-locked { overflow: hidden; }
   .contact__photo { grid-column: 1; }
   .cs__body { flex-direction: column; gap: 0; }
   .cs__info { position: static; max-width: none; padding-top: 60px; }
-  .cs__info .body { max-width: 85%; } /* intro and facts: same 85% measure as the logo cards */
+  .cs__info .body { max-width: none; text-wrap: wrap; } /* intro and facts run the full width, edge to edge */
   .cs__gallery { width: 100%; padding-top: 60px; }
-  /* A live section is unreadable at half a phone's width, so its pair stacks. */
-  .cs-pair--section { grid-template-columns: 1fr; }
+  .cs-pair { grid-template-columns: 1fr; } /* phones: paired images always stack, one per row */
   .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 12px; } /* one per row: each card its own height */
   .logos__marquee { margin-top: 60px; }
   .marquee__frame { width: 115px; margin-right: 40px; }
@@ -864,16 +871,6 @@ html.is-locked { overflow: hidden; }
 
 /* ---------- WebKit (Safari, all iOS browsers) rendering fallbacks ----------
    Scoped to html.is-webkit (set in main.tsx), so Chromium keeps the full effects. */
-
-/* The Shortcuts hero's glass panel and pill sit on a smooth, static gradient: blurring that
-   backdrop is visually a no-op, but WebKit re-samples and re-blurs it (60px / 24px radius) for
-   every frame the page scrolls. Keep the tint, drop the live blur. */
-html.is-webkit .sh__window,
-html.is-webkit .sh__glass {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-html.is-webkit .sh__window { background: rgba(6, 4, 10, 0.42); }
 
 /* Video popup: a still, solid dim instead of a full-screen live blur behind a playing video. */
 html.is-webkit .video-modal {

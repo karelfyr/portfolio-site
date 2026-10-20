@@ -49,85 +49,31 @@ function useCopy(onChange?: (copied: boolean) => void) {
 }
 
 /**
- * The email address as text. Hover (or tap, or focus) opens a small menu above it:
- * open it in the mail app, or copy it.
+ * The email address as text, with "Copy email" and "Open email app" — the one email interaction
+ * on the site (footer and Contact page). Desktop: hover / focus makes the address recede and the
+ * two buttons come in over it; after copying they stay a moment showing "Copied". Touch: the
+ * buttons sit under the address, stacked. Styles: .email-reveal in index.css.
  */
-export function EmailMenu({ className = 'label' }: { className?: string }) {
-  const [open, setOpen] = useState(false)
-  const { copied, run } = useCopy()
-  const closeTimer = useRef(0)
-  const root = useRef<HTMLSpanElement>(null)
-
-  const show = () => {
-    window.clearTimeout(closeTimer.current)
-    setOpen(true)
-  }
-  // A short grace period, so moving the mouse from the address up into the menu doesn't close it.
-  const hide = () => {
-    window.clearTimeout(closeTimer.current)
-    closeTimer.current = window.setTimeout(() => setOpen(false), 160)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    window.addEventListener('keydown', onKey)
-    window.addEventListener('pointerdown', onDown)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('pointerdown', onDown)
-    }
-  }, [open])
-  useEffect(() => () => window.clearTimeout(closeTimer.current), [])
-
+export function EmailReveal() {
+  const [holding, setHolding] = useState(false)
   return (
-    <span
-      ref={root}
-      className="email-menu"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && hide()}
-    >
-      <button
-        type="button"
-        className={`${className} email-menu__address`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {EMAIL}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.span
-            className="email-menu__pop"
-            role="menu"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.2, ease }}
-          >
-            <a role="menuitem" className="email-menu__item" href={`mailto:${EMAIL}`} onClick={() => setOpen(false)}>
-              Open in email app
-              <Icon name="out" />
-            </a>
-            <button role="menuitem" type="button" className="email-menu__item" onClick={run}>
-              {copied ? 'Copied' : 'Copy to clipboard'}
-              <Icon name={copied ? 'check' : 'copy'} />
-            </button>
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </span>
+    <div className={`email-reveal${holding ? ' is-holding' : ''}`}>
+      <p className="body email-reveal__address">{EMAIL}</p>
+      <EmailButtons onCopied={setHolding} />
+    </div>
   )
 }
 
-/**
- * The same two actions as buttons (Contact page). Neither is primary; they're hidden until the
- * email block is hovered or focused, then slide in one after the other (always shown on touch).
- */
+/** LinkedIn as a text link with the ↗ icon — same type and hover as the email. */
+export function LinkedInLink({ children = 'LinkedIn' }: { children?: string }) {
+  return (
+    <a className="body link-out" href={LINKEDIN} target="_blank" rel="noreferrer">
+      {children} <Icon name="out" />
+    </a>
+  )
+}
+
+/** The two equal, secondary buttons used by EmailReveal. */
 export function EmailButtons({ onCopied }: { onCopied?: (copied: boolean) => void }) {
   const { copied, run } = useCopy(onCopied)
   return (
