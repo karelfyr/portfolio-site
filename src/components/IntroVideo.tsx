@@ -3,9 +3,16 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { setScrollLocked } from './SmoothScroll'
 import { VideoPlayer } from './VideoPlayer'
+import { muxStill } from '../lib/mux'
+import { isWebKit } from '../lib/browser'
 
-const VIDEO_ID = '6g4ReR1X4Zw'
-const POSTER = `https://i.ytimg.com/vi/${VIDEO_ID}/maxresdefault.jpg`
+/** Mux playback ID of the reel. */
+const PLAYBACK_ID = 'y02NQcA5R02yJj4LCkQC4HEZTzeuugMvIwB3jjGpjPNTQ'
+/** Second of the video used as the still (title thumbnail and popup poster). */
+const STILL_AT = 0
+/** One still for the title thumbnail and the popup poster: it's already loaded and decoded when
+ * the popup opens, so nothing is fetched or decoded while the screen grows. */
+const STILL = muxStill(PLAYBACK_ID, { time: STILL_AT, width: 1280 })
 const ease = [0.22, 1, 0.36, 1] as const
 /** Seconds for the still to grow from the title into the player — unhurried on purpose. */
 const ENTER = 1.1
@@ -20,9 +27,20 @@ type Props = {
   variant?: 'inline' | 'block'
 }
 
+/** Fetches the streaming library ahead of time (idle after load, or on hover), so opening the
+ * popup doesn't download and parse it during the grow animation. Safari streams natively. */
+const warmUp = () => {
+  if (!isWebKit) import('hls.js')
+}
+
 export function IntroVideo({ variant = 'inline' }: Props) {
   const layoutId = `intro-video-${variant}`
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 2000))
+    idle(warmUp)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -37,9 +55,9 @@ export function IntroVideo({ variant = 'inline' }: Props) {
 
   return (
     <>
-      <button className={`intro-thumb intro-thumb--${variant}`} onClick={() => setOpen(true)} aria-label="Play intro video">
+      <button className={`intro-thumb intro-thumb--${variant}`} onClick={() => setOpen(true)} onPointerEnter={warmUp} aria-label="Play intro video">
         <motion.span className="intro-thumb__media" layoutId={layoutId} transition={{ duration: ENTER, ease }}>
-          <img src={POSTER} alt="" draggable={false} />
+          <img src={STILL} alt="" draggable={false} decoding="sync" />
           <span className="intro-thumb__play" aria-hidden />
         </motion.span>
         <span className="intro-thumb__caption">Watch the reel</span>
@@ -60,7 +78,7 @@ export function IntroVideo({ variant = 'inline' }: Props) {
               transition={{ duration: 0.7, ease }}
             >
               <div className="video-modal__frame" onClick={(e) => e.stopPropagation()}>
-                <VideoPlayer videoId={VIDEO_ID} poster={POSTER} layoutId={layoutId} enter={ENTER} />
+                <VideoPlayer playbackId={PLAYBACK_ID} poster={STILL} layoutId={layoutId} enter={ENTER} />
               </div>
               <button className="video-modal__close label" onClick={() => setOpen(false)} autoFocus>
                 Close ✕

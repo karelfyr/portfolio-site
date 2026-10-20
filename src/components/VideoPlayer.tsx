@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { motion } from 'motion/react'
-import { loadYouTube, type YTPlayer } from '../lib/youtube'
+import { muxStream } from '../lib/mux'
+import { isWebKit } from '../lib/browser'
+import { Icon } from './EmailActions'
 
 const fmt = (s: number) => {
   const t = Math.max(0, Math.floor(s))
@@ -8,139 +10,101 @@ const fmt = (s: number) => {
 }
 
 const ease = [0.22, 1, 0.36, 1] as const
-/** ms the video plays hidden and muted (buffering) before it's shown from 0:00. */
-const REVEAL_DELAY = 2000
-/** A pause this soon after the reveal is the browser refusing sound, not the viewer (ms). */
-const SOUND_BLOCK_WINDOW = 1500
+/** The viewer's volume is remembered between visits (a convenience – fine if storage is blocked). */
+const VOLUME_KEY = 'reel-volume'
+const savedVolume = () => {
+  try {
+    const v = parseFloat(localStorage.getItem(VOLUME_KEY) ?? '')
+    return v >= 0 && v <= 1 ? v : 1
+  } catch {
+    return 1
+  }
+}
 
 type Props = {
-  videoId: string
-  /** Still shown until the video is actually playing, so there's never a blank/white frame. */
+  /** Mux playback ID. */
+  playbackId: string
+  /** Still shown until the video is actually playing, so there's never a blank frame. */
   poster: string
   /** Shared-layout id: the screen grows out of the element with the same id (the title still). */
   layoutId?: string
-  /** Seconds the screen takes to grow into place; YouTube loads only after that, to keep it smooth. */
+  /** Seconds the screen takes to grow into place. */
   enter?: number
 }
 
 /**
- * YouTube video with our controls underneath (pause, sound, timeline, time).
- * On the picture YouTube's own click-to-pause and play/pause icon work as usual; its title
- * bar and logo are cropped away (see .player__mount in index.css).
+ * Mux video in a plain <video> with our own controls underneath (pause, sound, timeline, time).
+ * Streams adaptively (HLS): Safari plays it natively, other browsers through hls.js, which is
+ * only loaded when needed. Playback starts right away – the picture grows out of the title still
+ * while it begins – and clicking the picture pauses / plays.
  */
-export function VideoPlayer({ videoId, poster, layoutId, enter = 1 }: Props) {
-  const mount = useRef<HTMLDivElement>(null)
-  const player = useRef<YTPlayer | null>(null)
+export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) {
+  const video = useRef<HTMLVideoElement>(null)
   const bar = useRef<HTMLDivElement>(null)
   const fill = useRef<HTMLDivElement>(null)
   const timeText = useRef<HTMLSpanElement>(null)
   const scrubbing = useRef(false)
   const [muted, setMuted] = useState(false)
-  /** The video is visible (after the hidden warm-up). */
+  const [volume, setVolume] = useState(savedVolume)
+  const volumeBar = useRef<HTMLDivElement>(null)
+  const draggingVolume = useRef(false)
+  /** The video has started (it fades in over the still). */
   const [playing, setPlaying] = useState(false)
   const [paused, setPaused] = useState(false)
   const [ended, setEnded] = useState(false)
-  const reveal = useRef(0)
-  /** When the video was shown (ms), to tell a browser sound-block from a viewer pause. */
-  const shownAt = useRef(0)
-  /** Set once the hidden warm-up is done and the video has been shown. */
-  const shown = useRef(false)
-  /** The sound setting the viewer wants (the warm-up itself always runs muted). */
-  const wantSound = useRef(true)
 
   useEffect(() => {
-    let frame = 0
+    const v = video.current!
+    v.volume = savedVolume()
     let cancelled = false
-    const host = document.createElement('div')
-    mount.current!.appendChild(host)
+    let destroyHls = () => {}
 
-    const show = (p: YTPlayer, withSound: boolean) => {
-      if (withSound) p.unMute()
-      setMuted(!withSound)
-      wantSound.current = withSound
-      shown.current = true
-      shownAt.current = performance.now()
-      setPlaying(true)
+    // Streaming starts at once; playback as the grow animation settles, so decoding the first
+    // frames never competes with it (and stays within the click's ~1 s grace period for sound in
+    // Safari). Opened by a click, so sound is normally allowed; if the browser still refuses,
+    // play muted – the sound button below switches it on.
+    const opened = performance.now()
+    let timer = 0
+    const start = () => {
+      timer = window.setTimeout(play, Math.max(0, enter * 850 - (performance.now() - opened)))
+    }
+    const play = () =>
+      v.play().catch(() => {
+        if (cancelled) return
+        v.muted = true
+        setMuted(true)
+        v.play().catch(() => {})
+      })
+
+    const src = muxStream(playbackId)
+    // Safari / iPhone: native HLS (smoothest there). Elsewhere hls.js – some Chromium builds claim
+    // native HLS via canPlayType but then fail to play it.
+    if (isWebKit && v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src
+      start()
+    } else {
+      import('hls.js').then(({ default: Hls }) => {
+        if (cancelled) return
+        if (!Hls.isSupported()) {
+          v.src = src
+          start()
+          return
+        }
+        // Quality is left to hls.js: it adapts to the connection and the size the video is shown at.
+        const hls = new Hls({ capLevelToPlayerSize: true })
+        hls.loadSource(src)
+        hls.attachMedia(v)
+        destroyHls = () => hls.destroy()
+        start()
+      })
     }
 
-    // Wait for the grow animation to finish before loading YouTube, so it never stutters.
-    const start = window.setTimeout(() => loadYouTube().then((YT) => {
-      if (cancelled) return
-      player.current = new YT.Player(host, {
-        videoId,
-        host: 'https://www.youtube-nocookie.com',
-        playerVars: {
-          autoplay: 1,
-          mute: 1, // warm up silently (muted autoplay is always allowed); sound comes on at reveal
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          rel: 0,
-          playsinline: 1,
-          iv_load_policy: 3,
-          cc_load_policy: 0,
-          modestbranding: 1,
-          vq: 'hd2160', // 4K, in the embed link; YouTube may still adapt to the connection
-        },
-        events: {
-          onReady: ({ target }) => {
-            target.setPlaybackQuality?.('hd2160')
-            hideSubs(target) // no subtitles: YouTube draws them where its interface is cropped away
-            // autoplay=1 starts it; only nudge if the browser didn't.
-            window.setTimeout(() => {
-              if (!cancelled && target.getPlayerState() !== YT.PlayerState.PLAYING) target.playVideo()
-            }, 1500)
-            // Still not playing: show YouTube's own player (with its play button) rather than wait.
-            window.setTimeout(() => {
-              if (!cancelled && !shown.current) show(target, false)
-            }, 6000)
-          },
-          onStateChange: ({ data }) => {
-            const p = player.current!
-            if (data === YT.PlayerState.PLAYING) {
-              setPaused(false)
-              setEnded(false)
-              // YouTube can switch auto-captions back on when playback starts.
-              hideSubs(p)
-              if (!shown.current) {
-                // Warm-up done: back to the start, sound on, fade in — so it begins at 0:00
-                // with the video already loaded.
-                window.clearTimeout(reveal.current)
-                reveal.current = window.setTimeout(() => {
-                  if (cancelled) return
-                  p.seekTo(0, true)
-                  show(p, wantSound.current)
-                }, REVEAL_DELAY)
-              }
-            }
-            if (data === YT.PlayerState.PAUSED && shown.current) {
-              if (performance.now() - shownAt.current < SOUND_BLOCK_WINDOW && !p.isMuted()) {
-                // The browser (Safari) refused to turn the sound on without a click and paused
-                // it: carry on muted — "Sound off" below can switch it on.
-                p.mute()
-                p.playVideo()
-                wantSound.current = false
-                setMuted(true)
-              } else setPaused(true)
-            }
-            if (data === YT.PlayerState.ENDED) {
-              // Fade back to the still (and away from YouTube's end screen).
-              setPlaying(false)
-              setEnded(true)
-            }
-          },
-        },
-      })
-    }), enter * 1000)
-
-    // Keep the timeline in sync with playback (it stays at 0:00 during the hidden warm-up).
+    // Keep the timeline in sync with playback.
+    let frame = 0
     const tick = () => {
-      const p = player.current
-      if (p?.getDuration && shown.current && !scrubbing.current) {
-        const d = p.getDuration() || 0
-        const t = p.getCurrentTime() || 0
-        if (fill.current) fill.current.style.transform = `scaleX(${d ? t / d : 0})`
-        if (timeText.current) timeText.current.textContent = `${fmt(t)} / ${fmt(d)}`
+      if (!scrubbing.current && v.duration) {
+        if (fill.current) fill.current.style.transform = `scaleX(${v.currentTime / v.duration})`
+        if (timeText.current) timeText.current.textContent = `${fmt(v.currentTime)} / ${fmt(v.duration)}`
       }
       frame = requestAnimationFrame(tick)
     }
@@ -148,62 +112,90 @@ export function VideoPlayer({ videoId, poster, layoutId, enter = 1 }: Props) {
 
     return () => {
       cancelled = true
-      window.clearTimeout(start)
-      window.clearTimeout(reveal.current)
+      window.clearTimeout(timer)
       cancelAnimationFrame(frame)
-      player.current?.destroy()
-      player.current = null
+      v.pause()
+      destroyHls()
+      v.removeAttribute('src')
+      v.load()
     }
-  }, [videoId, enter])
+  }, [playbackId, enter])
 
-  const hideSubs = (p: YTPlayer) => {
-    p.unloadModule?.('captions')
-    p.unloadModule?.('cc')
-  }
-
-  // Play / pause / replay from the button under the video.
+  // Play / pause / replay – the button under the video, or a click on the picture.
   const togglePause = () => {
-    const p = player.current
-    if (!p || !shown.current) return
+    const v = video.current
+    if (!v || !playing) return
     if (ended) {
-      p.seekTo(0, true)
-      p.playVideo()
-      setPlaying(true)
-    } else if (paused) {
-      if (wantSound.current) p.unMute() // inside a click, so the browser allows sound
-      p.playVideo()
-    } else p.pauseVideo()
+      v.currentTime = 0
+      v.play()
+    } else if (v.paused) v.play()
+    else v.pause()
   }
 
   const toggleSound = () => {
-    wantSound.current = muted
-    setMuted(!muted)
-    const p = player.current
-    if (!p || !shown.current) return // applied when the video is revealed
-    if (wantSound.current) p.unMute()
-    else p.mute()
+    const v = video.current
+    if (!v) return
+    // Unmuting at zero volume would stay silent: come back at half.
+    if (muted && v.volume === 0) v.volume = 0.5
+    v.muted = !muted
+  }
+
+  const applyVolume = (level: number) => {
+    const v = video.current
+    if (!v) return
+    v.volume = Math.min(1, Math.max(0, level))
+    v.muted = v.volume === 0
+  }
+
+  // Click or drag along the volume line.
+  const dragVolume = (e: PointerEvent) => {
+    const r = volumeBar.current!.getBoundingClientRect()
+    applyVolume((e.clientX - r.left) / r.width)
   }
 
   // Click or drag along the timeline to seek.
   const seek = (e: PointerEvent) => {
-    const p = player.current
+    const v = video.current
     const r = bar.current!.getBoundingClientRect()
     const ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
     if (fill.current) fill.current.style.transform = `scaleX(${ratio})`
-    if (p) p.seekTo(ratio * p.getDuration(), true)
+    if (v?.duration) v.currentTime = ratio * v.duration
   }
 
   return (
     <div className="player">
       <motion.div
-        className={`player__screen${playing ? ' is-playing' : ''}`}
+        className={`player__screen${playing && !ended ? ' is-playing' : ''}`}
         layoutId={layoutId}
         transition={{ duration: enter, ease }}
       >
         <img className="player__poster" src={poster} alt="" draggable={false} />
-        <div className="player__mount" ref={mount} />
+        <video
+          ref={video}
+          className="player__video"
+          playsInline
+          preload="auto"
+          onClick={togglePause}
+          onPlaying={() => {
+            setPlaying(true)
+            setPaused(false)
+            setEnded(false)
+          }}
+          onPause={(e) => !e.currentTarget.ended && setPaused(true)}
+          onEnded={() => setEnded(true)} // fades back to the still
+          onVolumeChange={(e) => {
+            const v = e.currentTarget
+            setMuted(v.muted)
+            setVolume(v.volume)
+            try {
+              if (v.volume > 0) localStorage.setItem(VOLUME_KEY, String(v.volume))
+            } catch {
+              /* storage blocked: nothing to remember */
+            }
+          }}
+        />
         {/* Only before the video first appears: it's buffering behind the still */}
-        {!playing && !ended && (
+        {!playing && (
           <span className="player__loading label" role="status">
             <span className="player__spinner" aria-hidden />
             Loading
@@ -217,12 +209,39 @@ export function VideoPlayer({ videoId, poster, layoutId, enter = 1 }: Props) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.6, ease, delay: enter * 0.8 }}
       >
-        <button className="label player__toggle player__pause" onClick={togglePause}>
-          {ended ? 'Replay' : paused ? 'Play' : 'Pause'}
+        <button className="player__icon" onClick={togglePause} aria-label={ended ? 'Replay' : paused ? 'Play' : 'Pause'}>
+          <Icon name={ended ? 'replay' : paused ? 'play' : 'pause'} size={18} />
         </button>
-        <button className="label player__toggle" onClick={toggleSound} aria-pressed={!muted}>
-          {muted ? 'Sound off' : 'Sound on'}
+        <button className="player__icon" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>
+          <Icon name={muted || volume === 0 ? 'mute' : volume < 0.5 ? 'soundLow' : 'sound'} size={18} />
         </button>
+        {/* Volume (devices with a mouse; phones use their own volume buttons) */}
+        <div
+          className="player__bar player__bar--volume"
+          ref={volumeBar}
+          role="slider"
+          tabIndex={0}
+          aria-label="Volume"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round((muted ? 0 : volume) * 100)}
+          onPointerDown={(e) => {
+            draggingVolume.current = true
+            volumeBar.current!.setPointerCapture(e.pointerId)
+            dragVolume(e)
+          }}
+          onPointerMove={(e) => draggingVolume.current && dragVolume(e)}
+          onPointerUp={() => (draggingVolume.current = false)}
+          onPointerCancel={() => (draggingVolume.current = false)}
+          onKeyDown={(e) => {
+            const step = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 0.1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -0.1 : 0
+            if (!step) return
+            e.preventDefault()
+            applyVolume((muted ? 0 : volume) + step)
+          }}
+        >
+          <div className="player__fill" style={{ transform: `scaleX(${muted ? 0 : volume})` }} />
+        </div>
         <div
           className="player__bar"
           ref={bar}

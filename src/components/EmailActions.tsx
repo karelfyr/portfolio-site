@@ -100,9 +100,12 @@ export function EmailButtons({ onCopied }: { onCopied?: (copied: boolean) => voi
   )
 }
 
-export function Icon({ name }: { name: 'out' | 'copy' | 'check' }) {
+export type IconName = 'out' | 'copy' | 'check' | 'play' | 'pause' | 'replay' | 'sound' | 'soundLow' | 'mute'
+
+/** The site's icon set: 24-unit grid, 1.8 stroke, square caps and mitred joins (sharp). */
+export function Icon({ name, size = 14 }: { name: IconName; size?: number }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" strokeLinejoin="miter" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" strokeLinejoin="miter" aria-hidden>
       {name === 'out' && <path d="M7 17 17 7M9 7h8v8" />}
       {name === 'copy' && (
         <>
@@ -111,6 +114,13 @@ export function Icon({ name }: { name: 'out' | 'copy' | 'check' }) {
         </>
       )}
       {name === 'check' && <path d="m5 12.5 4.5 4.5L19 7.5" />}
+      {name === 'play' && <path d="M7 4.5v15L19 12z" />}
+      {name === 'pause' && <path d="M8 5v14M16 5v14" />}
+      {name === 'replay' && <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9M4.5 4v5h5" />}
+      {(name === 'sound' || name === 'soundLow' || name === 'mute') && <path d="M4 9h4l5-4v14l-5-4H4z" />}
+      {(name === 'sound' || name === 'soundLow') && <path d="M16.5 9a4.5 4.5 0 0 1 0 6" />}
+      {name === 'sound' && <path d="M19 6.5a8 8 0 0 1 0 11" />}
+      {name === 'mute' && <path d="m16.5 9.5 5 5m0-5-5 5" />}
     </svg>
   )
 }

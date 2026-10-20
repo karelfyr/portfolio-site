@@ -1,5 +1,13 @@
 # Portfolio site – rules
 
+## Never compress images
+
+Images are served exactly as provided – every file in `public/images/` is used as-is.
+
+- Never compress, resize, re-encode or convert images (no format changes, no quality changes).
+- Don't add image optimisation plugins, build steps or generated `srcset` variants.
+- Performance work must never touch the image files themselves.
+
 ## Design fidelity over performance: Shortcuts case study (`/works/shortcuts`)
 
 The Shortcuts hero and clip (`src/sections/ShortcutsHero.tsx`, `src/sections/shortcuts/*`) must look
