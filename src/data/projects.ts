@@ -30,11 +30,12 @@ export type Project = {
   heroSection?: SectionName
   intro: string
   year: string
-  delivered: string
-  impact: string
+  /** Optional; left out when empty. */
+  delivered?: string
+  /** Optional; the fact is left out when there's no impact line. */
+  impact?: string
   /** Label for the impact fact; defaults to "Impact". */
   impactLabel?: string
-  tools: string
   gallery: GalleryRow[]
 }
 
@@ -53,7 +54,6 @@ const allProjects: Project[] = [
     delivered: 'Signage Experience Design · Product Visualizations · Kiosk Interface Design',
     impact:
       'I designed a touchscreen kiosk interface for Decathlon, KIA, and Marriott – projects serving more than 50 000 users monthly. I also create realistic signage experience visualizations that stand at the beginning of every project.',
-    tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
     gallery: [
       { type: 'wide', src: '/images/pos-digital/posdigital_2.webp' },
       { type: 'pair', src: ['/images/pos-digital/posdigital_3.webp', '/images/pos-digital/posdigital_4.webp'] },
@@ -71,13 +71,9 @@ const allProjects: Project[] = [
     featured: true,
     hero: '/images/float/Float_1.webp',
     intro:
-      'Float is STRV’s breathing and meditation app. Calm by design. I was asked to make it feel new — as part of STRV’s search for a Senior UI Designer.',
-    year: '2025',
-    delivered: 'Visual direction · Brand refresh · Key app screens · In-app class booking',
-    impactLabel: 'Result',
-    impact:
-      'STRV builds products for the US market. $16M in revenue in 2025. Dozens of senior designers took on the same brief. I placed second.',
-    tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
+      'Float is a breathing and meditation app by STRV, a digital product studio with $16M in revenue in 2025. In their Senior Designer hiring process, I placed 2nd after a 4-day design challenge.',
+    year: '2026',
+    delivered: 'Visual Direction · Key App Screens · Breathing Class Booking Flow',
     gallery: [
       { type: 'wide', src: '/images/float/Float_2.webp' },
       { type: 'wide', src: '/images/float/Float_3.webp' },
@@ -88,7 +84,6 @@ const allProjects: Project[] = [
     ],
   },
   {
-    // TODO: placeholder lorem ipsum and empty gallery — replace with Shortcuts' own copy and images.
     slug: 'shortcuts',
     title: 'Shortcuts',
     tagline: 'Keyboard shortcuts list app',
@@ -97,18 +92,13 @@ const allProjects: Project[] = [
     featured: true,
     heroSection: 'shortcuts-hero',
     intro:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua – ut enim ad minim veniam.',
+      'I designed and built a macOS app that pulls up a searchable list of shortcuts for whichever app you’re in, with a single keystroke – and shipped it to 100+ developers.',
     year: '2026',
-    delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
-    impact:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
     gallery: [
       { type: 'section', name: 'shortcuts-clip' }, // 3840 × 2700 animated HUD clip
     ],
   },
   {
-    // TODO: placeholder lorem ipsum — replace with ZoeAI's own copy.
     slug: 'zoe',
     title: 'ZoeAI',
     tagline: 'Pitch deck design',
@@ -117,12 +107,9 @@ const allProjects: Project[] = [
     featured: true,
     hero: '/images/Zoe/zoe_1.webp',
     intro:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua – ut enim ad minim veniam.',
-    year: '2026',
-    delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
-    impact:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
+      'I redesigned the investor deck and visual identity for Zoe AI (now Perselio), an e-commerce search and recommendation platform for European retailers – to sharpen its value proposition and set it apart.',
+    year: '2024',
+    delivered: 'Pitch Deck Copywriting · Pitch Deck Visuals',
     gallery: [
       { type: 'wide', src: '/images/Zoe/zoe_2.webp' },
       { type: 'pair', src: ['/images/Zoe/zoe_3.webp', '/images/Zoe/zoe_4.webp'] },
@@ -142,12 +129,9 @@ const allProjects: Project[] = [
     featured: true,
     hero: '/images/polyglow/PolyGlow_1.webp',
     intro:
-      'Polyglow was my first-ever hiring challenge. One brief, built from zero — brand, product and story. It landed me a job at Blackfish.',
-    year: '2025',
-    delivered: 'Visual identity · Product concept · Landing page · Key app screens',
-    impactLabel: 'Result',
-    impact: 'Blackfish is a Czech–Danish studio. A narrow team. 1M in ARR. They had one seat. I took it.',
-    tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
+      'I conceived and designed the Polyglow language app to win a product designer seat at Blackfish, a Czech digital product studio with ~$1M ARR.',
+    year: '2024',
+    delivered: 'Product Concept · Positioning · Web Copy · Landing Page · App Design',
     gallery: [
       { type: 'wide', src: '/images/polyglow/PolyGlow_2.webp' },
       { type: 'large', src: '/images/polyglow/PolyGlow_3.webp' },
@@ -168,9 +152,6 @@ const allProjects: Project[] = [
       'GolfDren makes drainage solutions for golf bunkers. The goal was a fresh brand that could support new services – while staying clear for older audiences.',
     year: '2026',
     delivered: 'Branding · Website Design & Dev · Design System · Custom Illustrations',
-    impact:
-      'All brand materials live in one Figma project – consistent and professional, with a service offering shaped by real competitor research.',
-    tools: 'Figma, Claude, Weavy, Pixelmator Pro, Photomator',
     gallery: [
       { type: 'large', src: '/images/golfdren/GolfDren_2.webp' },
       { type: 'wide', src: '/images/golfdren/GolfDren_3.webp' },
@@ -192,7 +173,6 @@ const allProjects: Project[] = [
     delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
     impact:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
     gallery: [{ type: 'tall' }, { type: 'wide' }, { type: 'pair' }, { type: 'wide' }],
   },
   {
@@ -208,7 +188,6 @@ const allProjects: Project[] = [
     delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
     impact:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-    tools: 'Lorem, Ipsum, Dolor, Sit Amet',
     gallery: [{ type: 'tall' }, { type: 'wide' }, { type: 'pair' }, { type: 'wide' }],
   },
 ]

@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'motion/react'
 const links = [
   { to: '/', label: 'Home' },
   { to: '/works', label: 'Works' },
-  { to: '/passion-and-play', label: 'Passion & play' },
   { to: '/contact', label: 'Contact' },
 ]
 

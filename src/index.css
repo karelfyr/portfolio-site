@@ -163,12 +163,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   align-items: center;
   gap: 20px;
   text-align: center;
-  will-change: transform, filter;
+  /* will-change is set inline by BlurOnScroll (transform + filter in Blink, transform + opacity in WebKit) */
 }
 .hero__title {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(52px, 12.6vw, 120px);
+  /* The first line (“Engineer [video] with”) is ~9em wide: size the title so it always fits */
+  font-size: clamp(28px, calc((100vw - 2 * var(--gutter)) / 9.2), 120px);
   line-height: 1;
   letter-spacing: -0.045em;
   text-transform: uppercase;
@@ -177,11 +178,181 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 /* Optical kerning: open up the tight "E–Y" pair in "EYE" */
 .hero__title [data-text='eye']::first-letter { margin-right: 0.05em; }
-.hero__sub { color: var(--muted); max-width: 720px; text-wrap: balance; font-size: 18px; line-height: 1.5; letter-spacing: -0.005em; }
-.hero__cta {
+.hero__sub { color: var(--muted); max-width: 720px; text-wrap: balance; font-size: 18px; line-height: 1.5; letter-spacing: -0.02em; }
+/* Intro video still inside the hero title (IntroVideo). Sized in em, so it scales with the title. */
+/* Fits exactly within the capital letters: the still's top lines up with the cap height
+   (0.68em in Switzer) and its caption ends on the baseline. */
+.intro-thumb {
+  --cap: 0.68em;
+  --caption: calc(max(10px, 0.09em) + 4px); /* caption size + gap above it */
+  position: relative;
+  display: inline-block;
+  width: calc((var(--cap) - var(--caption)) * 16 / 9);
+  margin: 0 0.12em;
+  vertical-align: var(--caption);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+/* Larger standalone still, used on phones under the hero subtitle */
+.hero__video { display: none; }
+.intro-thumb--block { width: min(320px, 78vw); margin: 0; vertical-align: top; }
+.intro-thumb--block .intro-thumb__play { width: 16px; height: 18px; }
+.intro-thumb--block .intro-thumb__caption { position: static; display: block; margin-top: 8px; font-size: 12px; text-align: left; }
+.intro-thumb__media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #111;
+}
+.intro-thumb__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s var(--ease);
+}
+.intro-thumb:hover .intro-thumb__media img { transform: scale(1.06); }
+/* Small play triangle */
+.intro-thumb__play {
   position: absolute;
-  right: 20px;
-  bottom: 66px;
+  left: 50%;
+  top: 50%;
+  width: 0.16em;
+  height: 0.18em;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transform: translate(-40%, -50%);
+  opacity: 0.9;
+  transition: transform 0.5s var(--ease);
+}
+.intro-thumb:hover .intro-thumb__play { transform: translate(-40%, -50%) scale(1.15); }
+.intro-thumb__caption {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  font-family: var(--font-ui);
+  font-size: max(10px, 0.09em);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+/* Video popup: dims the page and plays the video centred. */
+.video-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 80px var(--gutter);
+  background: rgba(0, 0, 0, 0.88);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: zoom-out;
+}
+.video-modal__frame {
+  width: min(100%, 1280px, calc((100vh - 220px) * 16 / 9));
+  cursor: default;
+}
+
+/* Video player (VideoPlayer): picture + our own sound toggle and timeline. */
+.player__screen { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+/* No blue tap/selection highlight anywhere in the popup */
+.video-modal, .video-modal * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.video-modal button:focus:not(:focus-visible) { outline: none; }
+.player__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.player__mount, .player__mount iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none; /* not clickable while hidden behind the still */
+}
+/* Once shown, the picture is YouTube's own: click it to pause / play. */
+.player__screen.is-playing .player__mount,
+.player__screen.is-playing .player__mount iframe { pointer-events: auto; }
+/* The video stays invisible over the still until it is really playing, then fades in. */
+.player__mount { overflow: hidden; opacity: 0; transition: opacity 0.9s var(--ease); }
+.player__screen.is-playing .player__mount { opacity: 1; }
+/* The player is 3× taller than the visible window with the picture centred in it, so YouTube's
+   title bar (top) and logo (bottom) fall outside; its play/pause icon is centred and stays. */
+.player__mount iframe { top: -100%; height: 300%; }
+/* Small "Loading" chip on the still, only before the video first appears. */
+.player__loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--fg);
+  pointer-events: none;
+  animation: player-fade 0.5s var(--ease) 0.3s both;
+}
+.player__spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: player-spin 0.8s linear infinite;
+}
+@keyframes player-spin { to { transform: rotate(360deg); } }
+@keyframes player-fade { from { opacity: 0; } to { opacity: 1; } }
+.player__controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-top: 16px;
+}
+.player__toggle { color: var(--muted); white-space: nowrap; transition: color 0.3s var(--ease); }
+.player__pause { min-width: 48px; text-align: left; color: var(--fg); }
+.player__toggle:hover, .player__toggle[aria-pressed='true'] { color: var(--fg); }
+.player__time { color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Timeline: a hairline that thickens under the cursor; generous hit area for dragging. */
+.player__bar {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+.player__bar::before,
+.player__fill {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform-origin: left;
+  transition: height 0.3s var(--ease), margin-top 0.3s var(--ease);
+}
+.player__bar::before { background: rgba(255, 255, 255, 0.2); }
+.player__fill { background: var(--fg); transform: scaleX(0); }
+.player__bar:hover::before,
+.player__bar:hover .player__fill { height: 3px; margin-top: -1px; }
+.video-modal__close {
+  position: absolute;
+  top: 24px;
+  right: var(--gutter);
+  color: var(--muted);
+  transition: color 0.3s var(--ease);
+}
+.video-modal__close:hover { color: var(--fg); }
+html.is-locked { overflow: hidden; }
+
+/* Pinned to the bottom-right of the screen while on the home page. */
+.hero__cta {
+  position: fixed;
+  right: var(--gutter);
+  bottom: 40px;
+  z-index: 40;
 }
 
 /* ---------- Works grid & cards ---------- */
@@ -209,8 +380,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: transform 1s var(--ease);
 }
 .card:hover .card__media > * { transform: scale(1.04); }
-/* No hover effects mid-scroll (set by SmoothScroll) — keeps scrolling smooth over the grid */
-.is-scrolling .card { pointer-events: none; }
 .card__text { display: flex; flex-direction: column; gap: 4px; }
 .card__title {
   font-family: var(--font-ui);
@@ -387,7 +556,27 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .bracket__inner[data-y='bottom'] .bracket__desc { top: var(--pad); bottom: auto; transform: translateY(-10px); }
 .bracket__inner.is-active .bracket__desc { opacity: 1; transform: none; transition-delay: 0.08s; }
-.is-scrolling .bracket { pointer-events: none; }
+/* Touch screens (no hover): a static card — logo top-left at full brightness and 10% larger,
+   caption below it with a fixed gap, slightly tighter padding. */
+@media (hover: none) {
+  .bracket__inner {
+    aspect-ratio: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 64px;
+    padding: var(--pad) calc(var(--pad) - 4px) calc(var(--pad) - 4px); /* bottom = sides */
+  }
+  .bracket__logo {
+    position: static;
+    transform: none;
+    opacity: 1;
+    width: calc(var(--lw) * 1.1) !important; /* overrides the inline desktop width */
+  }
+  /* Pinned to the bottom, so the bottom inset always equals the sides even when cards in a row
+     are stretched to the same height; any extra room goes into the gap above the caption. */
+  .bracket__desc { position: static; opacity: 1; transform: none; margin-top: auto; }
+}
 
 /* Logos — endless strip of equal-spacing 1000×600 frames */
 .logos__marquee { margin-top: 80px; }
@@ -485,7 +674,19 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .nav__links { display: none; }
   .nav__menu { display: block; }
   .nav__sheet-link.h2 { font-size: 48px; }
-  .hero__cta { right: var(--gutter); bottom: 40px; }
+  .hero__cta { bottom: 20px; }
+  .hero__sub { font-size: 13px; max-width: 300px; }
+  /* Phone: timeline gets its own full-width row above the toggles */
+  .player__controls { flex-wrap: wrap; gap: 8px 12px; }
+  .player__pause { min-width: 0; }
+  .player__bar { flex-basis: 100%; order: -1; }
+  .player__time { margin-left: auto; }
+  /* Phones: the video leaves the title line (so the title can be bigger) and sits below
+     the subtitle as a larger still instead. */
+  .hero__title .te-insert { display: none; }
+  .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 7.6); }
+  .hero__video { display: block; order: 1; margin-top: 8px; }
+  .hero__sub { order: 2; } /* “I’m Karel…” sits under the video */
   .section__head { flex-wrap: wrap; }
   .grid { grid-template-columns: 1fr; }
   .about { grid-template-columns: 1fr; gap: 40px; }
@@ -503,9 +704,48 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .cs__gallery { width: 100%; padding-top: 60px; }
   /* A live section is unreadable at half a phone's width, so its pair stacks. */
   .cs-pair--section { grid-template-columns: 1fr; }
-  .brackets { grid-template-columns: 1fr; }
+  .brackets { grid-template-columns: 1fr; grid-auto-rows: auto; } /* one per row: each card its own height */
   .logos__marquee { margin-top: 60px; }
   .marquee__frame { width: 115px; margin-right: 40px; }
+}
+
+/* ---------- Scroll-driven hero recede (WebKit, see BlurOnScroll) ----------
+   Same curve as the Motion version: over the first 25% of the page's scroll the hero scales to
+   0.6 and fades to 0.25. A CSS scroll timeline is evaluated by the browser alongside native
+   scrolling — no scroll listener, no rAF, nothing on the main thread to fall behind. */
+@supports (animation-timeline: scroll()) {
+  .scroll-recede {
+    will-change: transform, opacity;
+    animation: hero-recede linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 25%;
+  }
+  @keyframes hero-recede {
+    to { opacity: 0.25; transform: scale(0.6); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-recede { animation: none; }
+}
+
+/* ---------- WebKit (Safari, all iOS browsers) rendering fallbacks ----------
+   Scoped to html.is-webkit (set in main.tsx), so Chromium keeps the full effects. */
+
+/* The Shortcuts hero's glass panel and pill sit on a smooth, static gradient: blurring that
+   backdrop is visually a no-op, but WebKit re-samples and re-blurs it (60px / 24px radius) for
+   every frame the page scrolls. Keep the tint, drop the live blur. */
+html.is-webkit .sh__window,
+html.is-webkit .sh__glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.is-webkit .sh__window { background: rgba(6, 4, 10, 0.42); }
+
+/* Video popup: a still, solid dim instead of a full-screen live blur behind a playing video. */
+html.is-webkit .video-modal {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(0, 0, 0, 0.94);
 }
 
 @media (prefers-reduced-motion: reduce) {

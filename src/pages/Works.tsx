@@ -13,6 +13,9 @@ const filters: { id: Category | 'all'; label: string }[] = [
   { id: 'photography', label: 'Selected Photography' },
 ]
 
+/** Category filters are hidden for now; flip to bring them back. */
+const SHOW_FILTERS = false
+
 export function Works() {
   const [active, setActive] = useState<Category | 'all'>('all')
   const shown = active === 'all' ? projects : projects.filter((p) => p.categories.includes(active))
@@ -25,18 +28,20 @@ export function Works() {
         <LogoMarquee logos={logos} />
       </Appear>
 
-      <Appear className="filters" delay={0.5}>
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            className={`label filter${active === f.id ? ' filter--active' : ''}`}
-            onClick={() => setActive(f.id)}
-            aria-pressed={active === f.id}
-          >
-            {f.label}
-          </button>
-        ))}
-      </Appear>
+      {SHOW_FILTERS && (
+        <Appear className="filters" delay={0.5}>
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              className={`label filter${active === f.id ? ' filter--active' : ''}`}
+              onClick={() => setActive(f.id)}
+              aria-pressed={active === f.id}
+            >
+              {f.label}
+            </button>
+          ))}
+        </Appear>
+      )}
 
       {shown.length > 0 ? (
         // Re-keyed per filter so the cards cascade in again when the filter changes.

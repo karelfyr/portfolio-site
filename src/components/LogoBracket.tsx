@@ -13,6 +13,10 @@ const DRIFT_X = 8
 const DRIFT_Y = 6
 /** The card only starts following the cursor after this long on hover (ms). */
 const DRIFT_DELAY = 500
+/** How long (ms) the follow strength takes to ramp up once the drift starts, so it eases in. */
+const DRIFT_EASE_IN = 900
+/** Per-frame follow strength (at 60fps) once fully ramped up. */
+const FOLLOW = 0.12
 
 /**
  * Bracket card. At rest the logo sits centred and slightly enlarged. On hover the card
@@ -30,9 +34,8 @@ export function LogoBracket({ logo }: { logo: Logo }) {
   const width = ((logo.bracketW * LOGO_SCALE) / 1117) * 100
   const height = width * (logo.h / logo.w)
 
-  // No hover on touch screens: show the finished card (logo top-left, caption at the bottom).
+  // Touch screens get a static card from CSS (@media (hover: none)); nothing to set up here.
   useEffect(() => {
-    if (window.matchMedia('(hover: none)').matches) ref.current?.classList.add('is-active')
     return () => {
       cancelAnimationFrame(frame.current)
       window.clearTimeout(timer.current)
@@ -49,14 +52,23 @@ export function LogoBracket({ logo }: { logo: Logo }) {
     ref.current!.style.setProperty('--my', `${p.y * 100}%`)
   }
 
-  // Ease the card toward the cursor every frame (lerp), like the reference button.
-  const drift = () => {
+  // Ease the card toward the cursor every frame (lerp), like the reference button. The follow
+  // strength starts at zero and ramps up (smoothstep), so the first move after the delay glides
+  // out from rest instead of snapping toward a cursor that's already in a corner.
+  const driftStart = useRef(0)
+  const lastFrame = useRef(0)
+  const drift = (now: number) => {
     const el = ref.current
     if (!el) return
+    const dt = Math.min(50, now - (lastFrame.current || now))
+    lastFrame.current = now
+    const ramp = Math.min(1, (now - driftStart.current) / DRIFT_EASE_IN)
+    const strength = FOLLOW * ramp * ramp * (3 - 2 * ramp)
+    const k = 1 - Math.pow(1 - strength, dt / 16.67) // frame-rate independent
     const c = current.current
     const t = target.current
-    c.x += (t.x - c.x) * 0.15
-    c.y += (t.y - c.y) * 0.15
+    c.x += (t.x - c.x) * k
+    c.y += (t.y - c.y) * k
     el.style.transform = `translate(${(c.x - 0.5) * DRIFT_X}px, ${(c.y - 0.5) * DRIFT_Y}px)`
     frame.current = requestAnimationFrame(drift)
   }
@@ -76,6 +88,8 @@ export function LogoBracket({ logo }: { logo: Logo }) {
       cancelAnimationFrame(frame.current)
       window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => {
+        driftStart.current = performance.now()
+        lastFrame.current = 0
         frame.current = requestAnimationFrame(drift)
       }, DRIFT_DELAY)
     }

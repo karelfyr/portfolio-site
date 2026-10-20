@@ -1,6 +1,7 @@
 import { useMemo, useRef, type ElementType, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useQueuedReveal } from '../lib/revealQueue'
+import { isWebKit } from '../lib/browser'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -23,20 +24,24 @@ export function Appear({ as: Tag = 'div', className, children, y = 16, blur = fa
   const ref = useRef<HTMLElement>(null)
   const queued = useQueuedReveal(ref, !reduce)
   const MotionTag = useMemo(() => motion.create(Tag), [Tag])
+  // Animated blur is CPU-rasterised in WebKit; these reveals run while scrolling, so skip it there.
+  const useBlur = blur && !isWebKit
 
   return (
     <MotionTag
       ref={ref}
       className={className}
-      initial={reduce ? false : { opacity: 0, y, ...(blur && { filter: 'blur(10px)' }) }}
+      initial={reduce ? false : { opacity: 0, y, ...(useBlur && { filter: 'blur(10px)' }) }}
       animate={
         queued === null
           ? undefined
           : {
               opacity: 1,
               y: 0,
-              ...(blur && { filter: 'blur(0px)' }),
+              ...(useBlur && { filter: 'blur(0px)' }),
               transition: { duration, ease, delay: delay + queued },
+              // Don't leave a finished element on `filter: blur(0px)` (keeps a filter layer alive).
+              ...(useBlur && { transitionEnd: { filter: 'none' } }),
             }
       }
     >

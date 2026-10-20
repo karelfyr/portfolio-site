@@ -7,9 +7,13 @@ import '@fontsource/open-sauce-one/400.css'
 import '@fontsource/open-sauce-one/500.css'
 import './index.css'
 import App from './App'
+import { isWebKit } from './lib/browser'
 
 // Always start at the top so the hero intro plays (Lenis handles scroll from here).
 history.scrollRestoration = 'manual'
+
+// Safari-specific rendering fallbacks in index.css are scoped under html.is-webkit.
+if (isWebKit) document.documentElement.classList.add('is-webkit')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

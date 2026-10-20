@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ElementType } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ElementType, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useQueuedReveal } from '../lib/revealQueue'
+import { isWebKit } from '../lib/browser'
 
 type Props = {
   /** Text to animate. Use "\n" to force a line break. */
@@ -15,11 +16,17 @@ type Props = {
   delay?: number
   /** Seconds between consecutive words/lines. */
   stagger?: number
+  /** Elements to drop into the text in place of a token word, e.g. { '[video]': <Thumb /> }. */
+  inserts?: Record<string, ReactNode>
 }
 
 // Framer's "Effect" enter: fade + blur + slight rise, on a soft ease-out.
 const hidden = { opacity: 0, filter: 'blur(10px)', y: 16 }
 const shown = { opacity: 1, filter: 'blur(0px)', y: 0 }
+// WebKit rasterises an animated blur on the CPU for every word, every frame; text revealed while
+// scrolling there fades and rises only.
+const hiddenPlain = { opacity: 0, y: 16 }
+const shownPlain = { opacity: 1, y: 0 }
 const ease = [0.22, 1, 0.36, 1] as const
 
 /**
@@ -35,6 +42,7 @@ export function TextEffect({
   trigger = 'appear',
   delay = 0,
   stagger,
+  inserts,
 }: Props) {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLElement>(null)
@@ -70,6 +78,7 @@ export function TextEffect({
   const start = delay + (queued ?? 0)
 
   const MotionTag = useMemo(() => motion.create(Tag), [Tag])
+  const plain = isWebKit && trigger === 'inView'
   // Per-line needs one layout pass to know the lines before it can start.
   const ready = (per === 'word' || lineOf !== null) && (trigger === 'appear' || queued !== null)
 
@@ -77,24 +86,31 @@ export function TextEffect({
     <MotionTag
       ref={ref}
       className={className}
-      aria-label={text.replace(/\n/g, ' ')}
+      aria-label={words.filter(({ w }) => !inserts?.[w]).map(({ w }) => w).join(' ')}
       initial={reduce ? false : 'hidden'}
       animate={ready ? 'shown' : 'hidden'}
     >
       {words.map(({ w, br }, i) => {
         const order = per === 'line' ? (lineOf?.[i] ?? 0) : i
+        const insert = inserts?.[w]
         return (
-          <span key={i} aria-hidden>
+          <span key={i} className={insert ? 'te-insert' : undefined} aria-hidden={insert ? undefined : true}>
             <motion.span
               data-word
-              data-text={w.toLowerCase()} // lets CSS fine-tune individual words (e.g. kerning)
+              data-text={insert ? undefined : w.toLowerCase()} // lets CSS fine-tune individual words (e.g. kerning)
               style={{ display: 'inline-block' }}
               variants={{
-                hidden,
-                shown: { ...shown, transition: { duration: 0.9, ease, delay: start + order * step } },
+                hidden: plain ? hiddenPlain : hidden,
+                shown: {
+                  ...(plain ? shownPlain : shown),
+                  transition: { duration: 0.9, ease, delay: start + order * step },
+                  // A finished word must not keep `filter: blur(0px)`: any filter keeps it in its
+                  // own filtered layer (an offscreen pass per word in WebKit). Clear it at the end.
+                  ...(plain ? {} : { transitionEnd: { filter: 'none' } }),
+                },
               }}
             >
-              {w}
+              {insert ?? w}
             </motion.span>
             {br ? <br /> : ' '}
           </span>

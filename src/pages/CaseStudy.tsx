@@ -65,9 +65,8 @@ export function CaseStudy() {
 
   const facts = [
     { label: 'Year', value: project.year },
-    { label: 'Delivered', value: project.delivered },
-    { label: project.impactLabel ?? 'Impact', value: project.impact },
-    { label: 'Tools used', value: project.tools },
+    ...(project.delivered ? [{ label: 'Delivered', value: project.delivered }] : []),
+    ...(project.impact ? [{ label: project.impactLabel ?? 'Impact', value: project.impact }] : []),
   ]
 
   return (

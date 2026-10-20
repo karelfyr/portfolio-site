@@ -122,6 +122,11 @@ export function SparkyAuto({ sentences, unit = 1 }: { sentences: string[]; unit?
     const tick = (now: number) => {
       if (prev && visible) elapsed += Math.min(now - prev, 100)
       prev = now
+      // Offscreen: keep the loop alive but skip style writes (no hidden style/paint work while scrolling).
+      if (!visible) {
+        raf = requestAnimationFrame(tick)
+        return
+      }
       const frame = sparkyAt(elapsed, false)
       const i = frame.index % sentences.length
       if (i !== indexRef.current) {

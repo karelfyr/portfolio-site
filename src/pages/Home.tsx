@@ -7,6 +7,7 @@ import { Img } from '../components/Img'
 import { useMobileSafeVh } from '../hooks/useMobileSafeVh'
 import { getProject } from '../data/projects'
 import { Appear } from '../components/Appear'
+import { IntroVideo } from '../components/IntroVideo'
 import { LogoBracket } from '../components/LogoBracket'
 import { logos } from '../data/logos'
 
@@ -28,10 +29,10 @@ const about = [
 ]
 
 const timeline = [
-  { when: 'Currently', what: 'Freelance design engineer for clients like CertiCon Group' },
-  { when: '2021 – now', what: 'Kiosk UI at POS Digital for KIA, Marriott, Decathlon' },
-  { when: '2025', what: 'UX designer at Blackfish' },
-  { when: 'May 2026', what: 'Moved to New York to work with founders and creatives, and hit hackathons' },
+  { when: '2020 – now', what: 'Freelance Design Engineer' },
+  { when: 'May 2026', what: 'Moved to New York to learn about trends in product building through meeting founders and attending events and hackathons.' },
+  { when: '2024', what: 'UX designer at Blackfish – Czech digital product studio' },
+  { when: '2021 – now', what: 'Digital Kiosk Designer at POS Digital (designed for KIA, Marriott, Decathlon and more)' },
 ]
 
 export function Home() {
@@ -42,7 +43,8 @@ export function Home() {
     <>
       <section className="hero">
         <BlurOnScroll className="hero__content">
-          <TextEffect as="h1" className="hero__title" text="Engineer with designer’s eye" per="word" trigger="appear" delay={0.6} />
+          <TextEffect as="h1" className="hero__title" text={'Engineer [video] with\ndesigner’s eye'}
+            inserts={{ '[video]': <IntroVideo /> }} per="word" trigger="appear" delay={0.6} />
           <TextEffect
             className="label hero__sub"
             text="I’m Karel, once a kid who loved photography, now building software and brands."
@@ -50,6 +52,15 @@ export function Home() {
             trigger="appear"
             delay={1.0}
           />
+          {/* Phones: the intro video gets its own, bigger still between the title and the subtitle */}
+          <motion.div
+            className="hero__video"
+            initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.9 }}
+          >
+            <IntroVideo variant="block" />
+          </motion.div>
         </BlurOnScroll>
         <motion.div
           className="hero__cta"
