@@ -20,7 +20,7 @@ const ENTER = 1.1
 /**
  * Small video still that sits inside the hero title. Clicking it dims the page and
  * plays the intro video in a popup; the still grows into the player (shared layout).
- * Closes on the ✕ button, a click outside the video, or Esc.
+ * Closes on the Close button, a click outside the video, or Esc.
  */
 type Props = {
   /** "inline" sits inside the title text; "block" is a larger standalone still (phones). */
@@ -81,7 +81,7 @@ export function IntroVideo({ variant = 'inline' }: Props) {
                 <VideoPlayer playbackId={PLAYBACK_ID} poster={STILL} layoutId={layoutId} enter={ENTER} />
               </div>
               <button className="video-modal__close label" onClick={() => setOpen(false)} autoFocus>
-                Close ✕
+                Close
               </button>
             </motion.div>
           )}

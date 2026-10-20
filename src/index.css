@@ -291,12 +291,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* No blue tap/selection highlight anywhere in the popup */
 .video-modal, .video-modal * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .video-modal button:focus:not(:focus-visible) { outline: none; }
-.player__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.player__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.9s var(--ease); }
+/* The popup is centred, so its edges often land between pixels: the picture bleeds 1px past the
+   (clipped) frame and the still behind it fades out once playing – no seam line along an edge. */
+.player__screen.is-playing .player__poster { opacity: 0; }
 .player__video {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
   object-fit: cover;
   background: transparent;
   pointer-events: none; /* not clickable while hidden behind the still */
@@ -345,6 +348,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity 0.3s var(--ease);
 }
 .player__icon:hover { opacity: 0.6; }
+.player__icon svg { width: 18px; height: 18px; }
 .player__time { color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Timeline: a hairline that thickens under the cursor; generous hit area for dragging. */
 .player__bar {
@@ -369,20 +373,32 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .player__fill { background: var(--fg); transform: scaleX(0); }
 .player__bar:hover::before,
 .player__bar:hover .player__fill { height: 3px; margin-top: -1px; }
-/* Volume: the same line, short, right after the sound icon. Hidden on touch screens – phones and
-   tablets use their hardware volume (iOS doesn't let pages set it). */
+/* Volume: the same line, short, right after the sound icon. Only where pages may set the volume
+   (not on iPhone / iPad – there the hardware buttons do it; the mute icon still works). */
 .player__bar--volume { flex: 0 0 64px; margin-left: -8px; }
 .player__bar--volume .player__fill { transition: height 0.3s var(--ease), margin-top 0.3s var(--ease); }
 .player__bar--volume:focus-visible { outline: 1px solid var(--muted); outline-offset: 2px; }
-@media (hover: none) { .player__bar--volume { display: none; } }
+/* Touch: bigger icons and tap areas (44px), a longer volume line that's easy to drag. */
+@media (hover: none) {
+  .player__icon { padding: 10px; margin: -10px; }
+  .player__icon svg { width: 24px; height: 24px; }
+  .player__bar--volume { flex-basis: 96px; height: 44px; margin-left: -4px; }
+}
+/* Same as the nav's Menu / Close: label text, same place (the nav row), same hover. */
 .video-modal__close {
   position: absolute;
-  top: 24px;
+  top: 20px;
   right: var(--gutter);
-  color: var(--muted);
-  transition: color 0.3s var(--ease);
+  height: 18px;
+  display: flex;
+  align-items: center;
+  padding: 12px 12px 12px 16px;
+  margin: -12px -12px -12px -16px; /* larger tap area without moving the text */
+  box-sizing: content-box;
+  color: var(--fg);
+  transition: opacity 0.3s var(--ease);
 }
-.video-modal__close:hover { color: var(--fg); }
+.video-modal__close:hover { opacity: 0.6; }
 html.is-locked { overflow: hidden; }
 
 /* Pinned to the bottom-right of the screen while on the home page. */

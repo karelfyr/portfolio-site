@@ -10,6 +10,14 @@ const fmt = (s: number) => {
 }
 
 const ease = [0.22, 1, 0.36, 1] as const
+/** Whether this device lets a page set the volume (iPhone / iPad don't: it stays at 1). */
+const canSetVolume = (() => {
+  if (typeof document === 'undefined') return false
+  const a = document.createElement('audio')
+  a.volume = 0.5
+  return a.volume === 0.5
+})()
+
 /** The viewer's volume is remembered between visits (a convenience – fine if storage is blocked). */
 const VOLUME_KEY = 'reel-volume'
 const savedVolume = () => {
@@ -210,12 +218,13 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
         transition={{ duration: 0.6, ease, delay: enter * 0.8 }}
       >
         <button className="player__icon" onClick={togglePause} aria-label={ended ? 'Replay' : paused ? 'Play' : 'Pause'}>
-          <Icon name={ended ? 'replay' : paused ? 'play' : 'pause'} size={18} />
+          <Icon name={ended ? 'replay' : paused ? 'play' : 'pause'} />
         </button>
         <button className="player__icon" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Turn sound off'}>
-          <Icon name={muted || volume === 0 ? 'mute' : volume < 0.5 ? 'soundLow' : 'sound'} size={18} />
+          <Icon name={muted || volume === 0 ? 'mute' : volume < 0.5 ? 'soundLow' : 'sound'} />
         </button>
-        {/* Volume (devices with a mouse; phones use their own volume buttons) */}
+        {/* Volume where the device allows it (iPhone / iPad: hardware buttons) */}
+        {canSetVolume && (
         <div
           className="player__bar player__bar--volume"
           ref={volumeBar}
@@ -242,6 +251,7 @@ export function VideoPlayer({ playbackId, poster, layoutId, enter = 1 }: Props) 
         >
           <div className="player__fill" style={{ transform: `scaleX(${muted ? 0 : volume})` }} />
         </div>
+        )}
         <div
           className="player__bar"
           ref={bar}
