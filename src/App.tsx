@@ -8,6 +8,8 @@ import { CaseStudy } from './pages/CaseStudy'
 import { Contact } from './pages/Contact'
 import { Logos } from './pages/Logos'
 import { NotFound } from './pages/NotFound'
+import { Start } from './pages/Start'
+import { Book } from './pages/Book'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -23,7 +25,8 @@ export default function App() {
           <Route path="/works/:slug" element={<CaseStudy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/logos" element={<Logos />} />
-          {/* Booking (/book, /start) is built but parked until Google Calendar + Resend are set up — see docs/booking-setup.md */}
+          <Route path="/start" element={<Start />} />
+          <Route path="/book" element={<Book />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

@@ -166,7 +166,6 @@ const allProjects: Project[] = [
     // TODO: placeholder lorem ipsum and empty images — replace with Decathlon's own copy and images.
     slug: 'decathlon',
     title: 'Decathlon',
-    hidden: true,
     tagline: 'Navigation kiosk design',
     categories: ['visuals-interfaces'],
     featured: true,
