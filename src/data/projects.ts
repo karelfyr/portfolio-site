@@ -4,7 +4,7 @@ export type Category = 'brands-products' | 'visuals-interfaces' | 'photography'
 type Src = string | undefined
 
 /** Live coded sections that can stand in for an image. */
-export type SectionName = 'golfdren-edges' | 'shortcuts-hero' | 'shortcuts-clip'
+export type SectionName = 'golfdren-edges' | 'shortcuts-hero' | 'shortcuts-clip' | 'decathlon-clip'
 
 /** A pair cell holds an image path (or nothing, for a placeholder) or a live section. */
 export type PairItem = Src | { section: SectionName }
@@ -24,7 +24,7 @@ export type Project = {
   cover?: Src
   categories: Category[]
   featured?: boolean
-  /** Kept in the data but not shown anywhere (no card, no case study page). */
+  /** Not listed anywhere (no card, not in Works); its case study page opens only by direct link. */
   hidden?: boolean
   // Case study
   hero?: Src
@@ -176,7 +176,9 @@ const allProjects: Project[] = [
     delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
     impact:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-    gallery: [{ type: 'tall' }, { type: 'wide' }, { type: 'pair' }, { type: 'wide' }],
+    gallery: [
+      { type: 'section', name: 'decathlon-clip' }, // 3840 × 2700 animated kiosk clip
+    ],
   },
   {
     // TODO: placeholder lorem ipsum and empty images — replace with Blackfish's own copy and images.
@@ -208,4 +210,5 @@ export const projects = allProjects
   .filter((p) => !p.hidden)
   .sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title))
 
-export const getProject =(slug?: string) => projects.find((p) => p.slug === slug)
+/** Any project's case study by slug – unlisted (hidden) ones too, so they open by direct link. */
+export const getProject = (slug?: string) => allProjects.find((p) => p.slug === slug)

@@ -8,6 +8,7 @@ import { getProject, type GalleryRow, type PairItem, type SectionName } from '..
 import { GolfdrenEdges } from '../sections/GolfdrenEdges'
 import { ShortcutsHero } from '../sections/ShortcutsHero'
 import { ShortcutsClip } from '../sections/shortcuts/ShortcutsClip'
+import { DecathlonClip } from '../sections/decathlon/DecathlonClip'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -23,6 +24,7 @@ const sections: Record<SectionName, () => React.JSX.Element> = {
   'golfdren-edges': GolfdrenEdges,
   'shortcuts-hero': ShortcutsHero,
   'shortcuts-clip': ShortcutsClip,
+  'decathlon-clip': DecathlonClip,
 }
 
 function PairCell({ item, alt }: { item: PairItem; alt: string }) {

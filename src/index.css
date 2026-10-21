@@ -31,6 +31,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
+/* No page zoom (see src/lib/noZoom.ts): scrolling only – no pinch, no double-tap zoom – and no
+   automatic text enlargement when a phone rotates. */
+html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   background: var(--bg);
   color: var(--fg);

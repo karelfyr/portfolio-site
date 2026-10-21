@@ -1,0 +1,195 @@
+/*
+ * Decathlon kiosk clip — stage 3840 × 2700 (Figma "Background frame"), the 3840 × 2160 kiosk
+ * screen across its full width with navy bands above and below. Every size, colour and position
+ * is the Figma section's ("Decathlon animation", node 477:3362), in design px.
+ */
+.dk-host { width: 100%; background: #0a0f32; }
+.dk {
+  overflow: hidden;
+  background: #0a0f32;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  pointer-events: none;
+}
+.dk p { margin: 0; }
+.dk img { display: block; max-width: none; }
+
+.dk__camera { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+/* No background of its own: every area paints its own, so at fractional scales no white can
+   bleed through as a hairline at the edges (e.g. around the ad panel). */
+.dk__screen { position: absolute; width: 3840px; height: 2160px; overflow: hidden; transform-origin: 0 0; }
+.dk__main { position: absolute; left: 0; top: 0; width: 2624px; height: 2160px; display: flex; flex-direction: column; }
+
+/* ── Top: category panel + map ───────────────────────── */
+.dk__top { position: relative; height: 1293.2px; flex-shrink: 0; display: flex; background: #f7f8f9; }
+.dk__panel { position: relative; width: 946px; height: 100%; flex-shrink: 0; overflow: hidden; background: #3343c1; }
+.dk__panel-inner { position: absolute; left: 148.1px; top: 152.288px; width: 649.8px; display: flex; flex-direction: column; align-items: flex-start; gap: 35.424px; }
+.dk__icon { width: 115.2px; height: 115.2px; transform: scaleX(-1); }
+.dk__panel-body { display: flex; flex-direction: column; gap: 57.6px; width: 100%; }
+.dk__title-row { display: flex; align-items: center; gap: 23.616px; }
+.dk__title { font-weight: 700; font-size: 50.4px; line-height: 61px; letter-spacing: 0.504px; text-transform: uppercase; color: #fff; white-space: nowrap; }
+.dk__arrow { width: 79.2px; height: 57.6px; }
+.dk__cols { display: flex; gap: 28.8px; width: 100%; align-items: flex-start; }
+.dk__col { flex: 1 0 0; display: flex; flex-direction: column; }
+.dk__item {
+  box-sizing: border-box;
+  width: 310.5px;
+  height: 74.6px;
+  display: flex;
+  align-items: center;
+  padding: 0 28.8px 0 7.2px;
+  border-top: 1.8px solid #414fd1;
+  font-weight: 600;
+  font-size: 23.4px;
+  line-height: 1;
+  letter-spacing: 0.117px;
+  color: #fff;
+}
+/* The picked sport's row: a button (the design's), dark when selected */
+.dk__item--pick { height: 72px; padding: 0 10.8px 0 21.6px; border-top: 0; background: #3343c1; width: 100%; }
+/* Initial state: the panel waits under a soft blue blur */
+.dk__blur {
+  position: absolute;
+  inset: 0;
+  background: rgba(33, 47, 158, 0.42);
+  -webkit-backdrop-filter: blur(11.35px);
+  backdrop-filter: blur(11.35px);
+}
+
+.dk__map { position: relative; width: 1678px; height: 1293px; flex-shrink: 0; overflow: hidden; background: #fff; }
+.dk__map > * { position: absolute; }
+.dk__area { border-radius: 3.559px; }
+.dk__route-select svg { display: block; overflow: visible; }
+
+.dk__legend { left: 111px; top: 386.91px; display: flex; flex-direction: column; gap: 21.319px; align-items: flex-start; }
+.dk__legend-item { display: flex; align-items: center; gap: 11.628px; padding: 10.659px 24.452px; }
+.dk__legend-item img { width: 34.885px; height: 34.885px; }
+.dk__legend-item p { font-weight: 700; font-size: 17.443px; line-height: 21px; text-transform: uppercase; color: #3d516a; white-space: nowrap; }
+
+.dk__here {
+  left: 1340px;
+  top: 911.19px;
+  width: 231.32px;
+  height: 63.48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 17.914px;
+  padding: 0 27.866px 0 11.943px;
+  border-radius: 62.624px;
+  background: #017051;
+}
+.dk__here img { width: 39.596px; height: 39.596px; }
+.dk__here p { font-weight: 600; font-size: 21.89px; letter-spacing: -0.4378px; color: #fff; white-space: nowrap; }
+
+/* ── Sports Section ─────────────────────────────────── */
+.dk__sections { box-sizing: border-box; height: 386.8px; flex-shrink: 0; display: flex; gap: 56px; padding: 96px 176px 96px 144px; background: #f3f5f7; }
+.dk__label { width: 237.6px; flex-shrink: 0; font-weight: 700; font-size: 25.2px; line-height: 1.3; letter-spacing: 0.252px; text-transform: uppercase; color: #141b56; transform: rotate(-0.14deg); }
+.dk__section-list { width: 1807.2px; display: flex; flex-wrap: wrap; align-content: center; gap: 22px 17px; }
+.dk__section {
+  position: relative;
+  height: 86.4px;
+  display: flex;
+  align-items: center;
+  padding: 0 43.2px;
+  border-radius: 999px; /* full pill, as Figma renders it (its exported 34px reads squarer) */
+  background: #fff;
+  overflow: hidden;
+  font-weight: 700;
+  font-size: 21.6px;
+  line-height: 1.15;
+  letter-spacing: 0.432px;
+  text-transform: uppercase;
+  color: #1d2351;
+  white-space: nowrap;
+}
+/* Selected: a fill that fades in over the white button */
+.dk__section-on { position: absolute; inset: 0; background: #3643ba; opacity: 0; }
+.dk__section span { position: relative; }
+
+/* ── Sports (alphabet + chips) ──────────────────────── */
+.dk__search { box-sizing: border-box; height: 480px; flex-shrink: 0; display: flex; gap: 48px; padding: 96px 176px 112px 144px; background: #fff; }
+.dk__search-body { position: relative; width: 1807.2px; display: flex; flex-direction: column; gap: 50.4px; overflow: hidden; }
+.dk__letters { display: flex; gap: 10.8px; align-items: center; }
+.dk__letter {
+  position: relative;
+  width: 54px;
+  height: 57.6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6.508px;
+  background: #f3f5f7;
+  overflow: hidden;
+  font-weight: 700;
+  font-size: 27px;
+  color: #141b56;
+}
+.dk__letter--off { opacity: 0.1; }
+.dk__letter-on { position: absolute; inset: 0; background: #262f82; opacity: 0; }
+.dk__letter span { position: relative; }
+
+.dk__chips-area { position: relative; display: flex; flex-direction: column; gap: 28.8px; }
+.dk__chips { position: relative; height: 74.6px; }
+.dk__row { position: absolute; left: 0; top: 0; display: flex; gap: 14.4px; }
+.dk__chip {
+  position: relative;
+  height: 74.6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 36px;
+  border-radius: 81.291px;
+  background: #f3f5f7;
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 23.4px;
+  letter-spacing: 0.117px;
+  color: #1d245f;
+  white-space: nowrap;
+}
+.dk__chip span { position: relative; }
+.dk__fade { position: absolute; left: 1502.92px; top: 0; width: 304.2px; height: 75.6px; background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0)); }
+.dk__track { position: relative; width: 2163.6px; height: 10.8px; border-radius: 61.2px; background: #f3f5f7; }
+.dk__thumb { position: absolute; left: 0; top: 0; width: 469.8px; height: 10.8px; border-radius: 86.4px; background: #d0d5db; }
+/* Held: the thumb goes a little greyer */
+.dk__thumb-held { position: absolute; inset: 0; border-radius: inherit; background: #a7b0ba; opacity: 0; }
+
+/* ── Right: the ad screen ───────────────────────────── */
+.dk__ad {
+  position: absolute;
+  left: 2623px; /* overlaps the main column by 1px: no seam between them */
+  top: 0;
+  width: 1217px;
+  height: 2160px;
+  overflow: hidden;
+  /* Matched to Figma's render of the panel (its exported CSS gradient renders lighter) */
+  background-image: linear-gradient(to bottom right, #273199, #18185d);
+}
+.dk__ad-layer { position: absolute; inset: 0 0 0 1px; }
+/* The ad's big images fade on their own layers, so a fade never repaints them */
+.dk__ad-layer,
+.dk__mat,
+.dk__mat-title { will-change: opacity; }
+.dk__welcome { position: absolute; left: -1px; top: 259px; width: 1217px; height: 1359px; overflow: hidden; }
+.dk__welcome img { position: absolute; left: -9.94%; top: 0; width: 119.88%; height: 100%; }
+.dk__prompt {
+  position: absolute;
+  left: 322px;
+  top: 1821.5px; /* the design's frame top (1837) minus Inter's space above the caps */
+  width: 560px;
+  opacity: 0.8;
+  font-weight: 500;
+  font-size: 53.928px;
+  line-height: 1.3;
+  letter-spacing: -0.5393px;
+  text-align: center;
+  text-transform: uppercase;
+  color: #fff;
+}
+.dk__mat { position: absolute; left: -565px; top: 679px; width: 2424px; height: 2424px; object-fit: cover; object-position: bottom; }
+.dk__mat-title { position: absolute; left: 151px; top: 240px; width: 940px; height: 568px; overflow: hidden; }
+.dk__mat-title img { width: 100%; height: 100%; }
+
