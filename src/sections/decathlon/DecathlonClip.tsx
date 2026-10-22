@@ -522,8 +522,14 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
       video.addEventListener('loadedmetadata', still, { once: true })
       return () => video.removeEventListener('loadedmetadata', still)
     }
+    // muted from the start (iOS only autoplays muted video)
+    video.muted = true
+    video.defaultMuted = true
+    video.setAttribute('muted', '')
     const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) video.play().catch(onFail)
+      // only a refusal to autoplay (e.g. iOS Low Power Mode) falls back to the live clip – not a play
+      // interrupted by scrolling away
+      if (e.isIntersecting) video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && onFail())
       else video.pause()
     })
     io.observe(video)
