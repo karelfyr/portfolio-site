@@ -7,6 +7,9 @@ Images are served exactly as provided – every file in `public/images/` is used
 - Never compress, resize, re-encode or convert images (no format changes, no quality changes).
 - Don't add image optimisation plugins, build steps or generated `srcset` variants.
 - Performance work must never touch the image files themselves.
+- One exception, on Karel's request (Oct 2026): `public/images/decathlon/phone/` holds lossless
+  copies of `welcome.png` and `mat-title.png` sized to the most a phone ever displays them, used only
+  by the phone layout of the Decathlon clip. The originals are untouched and desktop uses them.
 
 ## Design fidelity over performance: Shortcuts case study (`/works/shortcuts`)
 
@@ -20,3 +23,9 @@ when the two conflict.
   tinted fallbacks.
 - No browser-specific simplifications (removed blur, swapped effects, lower-fidelity layers) on
   these sections. Optimise only in ways that leave the rendered result identical.
+
+## Motion
+
+All animated clips (camera moves, zoom, easing, pacing, loops) follow the `motion-playbook` skill
+(`~/.claude/skills/motion-playbook/SKILL.md`, backed up at github.com/karelfyr/motion-playbook).
+When Karel settles a new motion rule, add it there.

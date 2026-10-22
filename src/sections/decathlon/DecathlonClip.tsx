@@ -36,32 +36,47 @@ import './decathlon-clip.css'
 /*
  * Decathlon navigation kiosk — a looping, non-interactive "web clip", built like the Shortcuts
  * clip: one master clock, every frame a pure function of time, so each loop is identical. Initial
- * and Select states are the Figma frames; everything between is animated. No visible hand: the
- * UI simply answers an invisible touch.
+ * and Select states are the Figma frames; everything between is animated.
  *
- * The camera is one continuous path through a list of shots (see `schedule`):
- * - it never stops – each shot is a short dwell with a slow drift (≈1–2 screen px/s, aimed at the
- *   next target, plus a hair of push-in), and every move enters and leaves at that drift speed;
- * - travel time between shots follows the distance covered (frame widths + zoom change);
- * - during the slider drag it moves at the thumb's constant speed, 1:1, so the thumb stays put;
- * - every UI event is timed from the camera's arrival, so it happens in the middle of the frame.
- *
- * Desktop (3840 × 2700): overview → "Find your sport" → the search, riding the drag → P → the P
- * sports → Pilates → the whole kiosk as everything answers in order (section, panel, route and
- * point, then the ad) → long dwell → sit back into the next loop.
- * Phone (2160 × 3456, portrait): the same, closer – plus the "Sports Section" / "Sports" titles,
- * and after Pilates a flythrough: section → panel → map (route, then in on Fitness as the point
- * lands) → the ad → the whole kiosk.
+ * Desktop (see `classicLayout`): the whole kiosk → one straight push in on the ad
+ * → glide to the search → a finger drags the slider (sports stream by), taps P (only P sports stay,
+ * packed left), taps Pilates → pull back as everything answers in order: Fitness lights up, the
+ * panel's blur clears and its list drops in, the route rolls out to Fitness and the point lands →
+ * the ad rolls out last → long hold → it sits back while everything eases back to the start,
+ * straight into the next loop (one take).
+ * Desktop (3840 × 2700) pulls back to the whole kiosk for the answer.
+ * Phone (2160 × 3456, portrait, see `phoneLayout`) tells the same story close up, centred on every
+ * step: one camera that never stops, landing on each beat in turn.
  */
 
 // ── Easing ──────────────────────────────────────────────────────────
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
-const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x))
 const prog = (t: number, a: number, b: number) => clamp01((t - a) / (b - a))
 const inOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
 const outCubic = (x: number) => 1 - Math.pow(1 - x, 3)
 const outQuint = (x: number) => 1 - Math.pow(1 - x, 5)
+const inCubic = (x: number) => x * x * x
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k
+const inOutSine = (x: number) => (1 - Math.cos(Math.PI * x)) / 2
+const logLerp = (a: number, b: number, k: number) => Math.exp(lerp(Math.log(a), Math.log(b), k))
+/** A CSS-style cubic-bezier easing (x → y), solved with a few Newton steps. */
+const bezier = (x1: number, y1: number, x2: number, y2: number) => {
+  const at = (t: number, a: number, b: number) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3
+  const slope = (t: number, a: number, b: number) => 3 * a * (1 - t) ** 2 + 6 * (b - a) * t * (1 - t) + 3 * (1 - b) * t * t
+  return (x: number) => {
+    if (x <= 0 || x >= 1) return clamp01(x)
+    let t = x
+    for (let i = 0; i < 6; i++) t -= (at(t, x1, x2) - x) / (slope(t, x1, x2) || 1)
+    return at(clamp01(t), y1, y2)
+  }
+}
+/** Phone camera moves: a smooth landing – it gets going quickly, then settles in long and slow. */
+const land = bezier(0.3, 0, 0.1, 1)
+/** The final unzoom: the same landing, cut before it settles – it slows right down but never stops,
+ * and the next loop carries that motion on. */
+const landOpen = (p: number) => land(0.75 * p) / land(0.75)
+/** Phone finger moves: quick to leave, easing into each target. */
+const reach = bezier(0.3, 0, 0.15, 1)
 /** A label's colour from (r, g, b) towards white, in step with its button's fill. */
 const mix = (r: number, g: number, b: number, k: number) => `rgb(${lerp(r, 255, k)}, ${lerp(g, 255, k)}, ${lerp(b, 255, k)})`
 
@@ -70,13 +85,12 @@ const ROW_LEFT = 429.68 // the sports search column (label 144 + 237.6 + gap 48)
 const VISIBLE = 1807.2
 const THUMB = 469.8
 const DRAG_TO = VISIBLE / 2 - THUMB / 2 // the thumb is dragged to the middle of the track…
-const SCROLL_CHIPS = 15 // …but the list only moves on by about 15 sports, slowly, so each one reads
+const SCROLL_CHIPS = 15 // …but the list only moves on by about 15 sports, slowly, so each one reads (phone: `scrollChips`)
 const LETTER_STEP = 64.8 // 54 + 10.8
 const SCREEN = { w: 3840, h: 2160 }
 const THUMB_X = ROW_LEFT + THUMB / 2 // the thumb's centre at rest
 const P_X = ROW_LEFT + LETTERS.indexOf(PICK_LETTER) * LETTER_STEP + 27 // the P key
 const PILATES_X = 1075 // the Pilates chip in the filtered row
-const DRAG_TIME = 3.5 // the drag: constant speed, so the list streams by evenly
 
 // ── Timeline (seconds), derived from the camera's schedule ──────────
 type Timeline = {
@@ -96,87 +110,26 @@ type Timeline = {
   end: number
   ad: number
   reset: number[]
+  /** Desktop only: the visible finger's moves and the Pilates tap. */
+  finger?: { in: number; toLetter: number[]; toChip: number[]; tapChip: number; out: number }
+  /** The drag eases in and out (both layouts). */
+  easeDrag?: boolean
+  /** Phone: the finger's moves use the softer `reach` easing. */
+  softFinger?: boolean
+  /** How many sports the list moves on by while the thumb is dragged (default `SCROLL_CHIPS`). */
+  scrollChips?: number
 }
 
-/** The scrollbar thumb's offset: constant speed while dragged, back to the start as the list filters. */
+/** The scrollbar thumb's offset while dragged, back to the start as the list filters. */
 function thumbAt(t: number, T: Timeline) {
-  const dragK = prog(t, T.drag[0], T.drag[1])
+  const k = prog(t, T.drag[0], T.drag[1])
+  const dragK = T.easeDrag ? inOutSine(k) : k
   const backK = inOut(prog(t, T.filter.out, T.filter.out + 0.55))
   return DRAG_TO * dragK * (1 - backK)
 }
 
-// ── The camera: one continuous path through timed shots ─────────────
-type Cam = { s: number; x: number; y: number }
-type Shot = {
-  name: string
-  s: number
-  x: number // screen px – the shot is centred exactly here
-  y: number
-  dwell: number
-  /** Explicit velocity during the dwell (screen px/s) – e.g. the drag's constant speed. */
-  move?: { x: number; y: number }
-  /** Override the travel time into this shot (s). */
-  travel?: number
-}
-type Knot = { t: number; p: number[]; v: number[] } // p, v: [x, y, ln s] in screen px
-
-/**
- * Lays the shots out in time and returns the camera path and each shot's arrival / departure.
- * - Dwell: the camera keeps drifting (DRIFT × frame width per second, towards the next shot, plus
- *   a 0.15 %/s push-in) – it never comes to rest.
- * - Travel: 0.7 s + 0.9 s × distance (in frame widths, plus 0.7 × the zoom change in ln), 0.9–2.4 s;
- *   a cubic (Hermite) curve that leaves and arrives at the dwell's drift velocity – an ease in-out
- *   that hands over to the drift without ever stopping.
- */
-function schedule(shots: Shot[], viewW: (s: number) => number, drift: number) {
-  const knots: Knot[] = []
-  const times: Record<string, { arrive: number; depart: number }> = {}
-  const last = shots.length - 1
-  const vel = (i: number): number[] => {
-    // the last shot is the first one again (the loop's seam): same drift, so speed carries through
-    if (i === last) return vel(0)
-    const a = shots[i]
-    if (a.move) return [a.move.x, a.move.y, 0]
-    const b = shots[i + 1]
-    const v = drift * viewW(a.s)
-    // the slow zoom drift leans towards the next shot's scale (anticipation)
-    const zoom = 0.0015 * (Math.log(b.s / a.s) < -0.01 ? -1 : 1)
-    const dx = b.x - a.x, dy = b.y - a.y
-    const d = Math.hypot(dx, dy)
-    // next shot in the same place (e.g. a sit-back): drift gently on the diagonal instead of stopping
-    if (d < 1) return [v * 0.8, v * 0.6, zoom]
-    return [(dx / d) * v, (dy / d) * v, zoom]
-  }
-  let t = 0
-  shots.forEach((sh, i) => {
-    const v = vel(i)
-    if (i > 0) {
-      const prev = knots[knots.length - 1]
-      const dist = Math.hypot(sh.x - prev.p[0], sh.y - prev.p[1]) / viewW(Math.exp((prev.p[2] + Math.log(sh.s)) / 2)) + 0.7 * Math.abs(Math.log(sh.s) - prev.p[2])
-      t += sh.travel ?? clamp(0.7 + 0.9 * dist, 0.9, 2.4)
-    }
-    const p = [sh.x, sh.y, Math.log(sh.s)]
-    knots.push({ t, p, v })
-    times[sh.name] = { arrive: t, depart: t + sh.dwell }
-    if (sh.dwell > 0) knots.push({ t: t + sh.dwell, p: p.map((c, k) => c + v[k] * sh.dwell), v })
-    t += sh.dwell
-  })
-  const at = (t: number): number[] => {
-    if (t <= knots[0].t) return knots[0].p
-    const last = knots[knots.length - 1]
-    if (t >= last.t) return last.p
-    let i = 0
-    while (t > knots[i + 1].t) i++
-    const a = knots[i], b = knots[i + 1]
-    const h = b.t - a.t
-    const u = (t - a.t) / h
-    const h00 = 2 * u ** 3 - 3 * u ** 2 + 1, h10 = u ** 3 - 2 * u ** 2 + u, h01 = -2 * u ** 3 + 3 * u ** 2, h11 = u ** 3 - u ** 2
-    return [0, 1, 2].map((k) => h00 * a.p[k] + h10 * h * a.v[k] + h01 * b.p[k] + h11 * h * b.v[k])
-  }
-  return { at, times, total: t }
-}
-
 // ── Layouts ─────────────────────────────────────────────────────────
+type Cam = { s: number; x: number; y: number }
 type Layout = {
   W: number
   H: number
@@ -189,103 +142,293 @@ type Layout = {
   cameraAt: (t: number) => Cam
 }
 
-/** Shared by both layouts: builds the stage mapping, the camera and the timeline from the shots. */
-function makeLayout(W: number, H: number, K: number, drift: number, shots: Shot[], events: (a: (n: string) => number, d: (n: string) => number) => Timeline): Layout {
+/** Desktop's timeline – the classic cut's rhythm. */
+const timeline = (ad: number, reset: number[]): Timeline => ({
+  start: 1.2,
+  drag: [6.0, 9.5],
+  grab: 5.85,
+  release: 9.65,
+  tapLetter: 10.35,
+  filter: { out: 10.45, in: 10.7, step: 0.06 },
+  section: 13.3,
+  blur: [13.35, 13.95],
+  dip: [13.3, 13.45],
+  cascade: { start: 13.5, step: 0.03, dur: 0.5 },
+  pick: 14.1,
+  arrow: 14.15,
+  route: [13.55, 15.35],
+  end: 14.9,
+  ad,
+  reset, // at the end of the slow unzoom, still inside it
+  finger: { in: 5.4, toLetter: [9.75, 10.3], toChip: [11.55, 12.1], tapChip: 12.15, out: 12.3 },
+  easeDrag: true,
+})
+
+/**
+ * Desktop's camera: from the sat-back overview, one straight push in straight away (scaling about a
+ * fixed point, so it moves in a single direction), then moves between shots – each one a smooth
+ * landing like the phone's, setting off as the one before it settles, so the camera never stops dead
+ * – the last (`unzoom`) a long, slow unzoom to the overview, landing as the next loop pushes in (one
+ * take).
+ */
+function classicLayout(
+  W: number, H: number, K: number,
+  { ad, reset, unzoom }: { ad: number; reset: number[]; unzoom: number[] },
+  push: number[],
+  moves: [number[], number[]][],
+): Layout {
   const OX = (W - SCREEN.w * K) / 2
   const OY = (H - SCREEN.h * K) / 2
-  const viewW = (s: number) => W / s / K // the frame's width in screen px at scale s
-  const path = schedule(shots, viewW, drift)
-  const arrive = (n: string) => path.times[n].arrive
-  const depart = (n: string) => path.times[n].depart
+  const at = ([s, x, y]: number[]): Cam => ({ s, x: OX + K * x, y: OY + K * y })
+  const UNZOOMED: Cam = { s: 0.93, x: W / 2, y: H / 2 }
+  const FIND = at(push)
+  const shots: [number[], Cam][] = [...moves.map(([r, c]): [number[], Cam] => [r, at(c)]), [unzoom, UNZOOMED]]
+  const r = UNZOOMED.s / FIND.s
+  const anchor = { x: (FIND.x - UNZOOMED.x * r) / (1 - r), y: (FIND.y - UNZOOMED.y * r) / (1 - r) }
   return {
     W, H, K, OX, OY,
-    LOOP: path.total,
-    T: events(arrive, depart),
+    T: timeline(ad, reset),
+    LOOP: unzoom[1],
     cameraAt: (t: number) => {
-      const [x, y, ls] = path.at(t)
-      return { s: Math.exp(ls), x: OX + K * x, y: OY + K * y }
+      let cam = UNZOOMED
+      const z = land(prog(t, 1.2, 3.4))
+      if (z > 0) {
+        const s = logLerp(UNZOOMED.s, FIND.s, z)
+        cam = { s, x: anchor.x + ((UNZOOMED.x - anchor.x) * UNZOOMED.s) / s, y: anchor.y + ((UNZOOMED.y - anchor.y) * UNZOOMED.s) / s }
+      }
+      for (const [[a, b], to] of shots) {
+        const k = (to === UNZOOMED ? landOpen : land)(prog(t, a, b))
+        if (k <= 0) break
+        cam = { s: logLerp(cam.s, to.s, k), x: lerp(cam.x, to.x, k), y: lerp(cam.y, to.y, k) }
+      }
+      return cam
     },
   }
 }
 
-/** The overview the loop starts and ends on: the whole kiosk, sat back slightly. */
-const overview = (name: string, dwell: number, travel?: number): Shot => ({ name, s: 0.93, x: SCREEN.w / 2, y: SCREEN.h / 2, dwell, travel })
+/**
+ * Desktop: the whole kiosk → one straight push in on "Find your sport" → glide to the search → the
+ * finger drags the slider, taps P, taps Pilates → the camera pulls back to the whole kiosk as
+ * everything answers in order (section, panel, route and point) → as the ad unveils, one long,
+ * slow unzoom sets off, the kiosk going back to its start at the very end of it → straight into the
+ * next loop.
+ */
+const desktopLayout = () =>
+  classicLayout(3840, 2700, 0.88, { ad: 15.2, reset: [20.6, 22.2], unzoom: [15.2, 22.4] }, [3.6, 3233, 1671], [
+    // the "Sports Section" and "Sports" rows in the middle of the frame, background around them – more on the left…
+    [[3.9, 6.1], [1.75, 1050, 1700]],
+    [[5.9, 12.0], [1.75, 1130, 1700]], // …drifting gently along with the drag, P and Pilates
+    [[12.25, 14.6], [1, 1920, 1080]], // the whole kiosk
+  ])
 
-/** The events every layout shares, timed from the camera (a = arrival, d = departure). */
-const searchEvents = (a: (n: string) => number) => ({
-  drag: [a('drag'), a('drag') + DRAG_TIME],
-  grab: a('drag') - 0.15,
-  release: a('drag') + DRAG_TIME + 0.1,
-  tapLetter: a('letter') + 0.15,
-  filter: { out: a('letter') + 0.25, in: a('letter') + 0.5, step: 0.06 },
-})
-
-function desktopLayout(): Layout {
-  const Y = 1393 // the search framing's centre line
-  return makeLayout(3840, 2700, 0.88, 0.003, [
-    overview('start', 1.0),
-    { name: 'find', s: 3.6, x: 3233, y: 1671, dwell: 1.6 }, // exactly the ad panel – read
-    { name: 'drag', s: 2, x: THUMB_X + 336, y: Y, dwell: DRAG_TIME, move: { x: DRAG_TO / DRAG_TIME, y: 0 } }, // rides the drag 1:1
-    { name: 'letter', s: 2, x: P_X - 80, y: Y, dwell: 0.9 },
-    { name: 'pwords', s: 2, x: 1100, y: Y, dwell: 1.6, move: { x: 40, y: 0 } }, // a slow read across the P sports
-    { name: 'pilates', s: 2, x: PILATES_X + 120, y: Y, dwell: 0.6 },
-    { name: 'home', s: 1, x: SCREEN.w / 2, y: SCREEN.h / 2, dwell: 7.5 }, // everything answers, in order
-    overview('end', 0, 2.0),
-  ], (a, d) => {
-    const h = a('home')
-    return {
-      start: 0,
-      ...searchEvents(a),
-      section: h - 0.3,
-      blur: [h, h + 0.6],
-      dip: [h - 0.05, h + 0.1],
-      cascade: { start: h + 0.15, step: 0.03, dur: 0.5 },
-      pick: h + 0.75,
-      arrow: h + 0.8,
-      route: [h + 0.3, h + 2.1],
-      end: h + 1.65,
-      ad: h + 2.3,
-      reset: [d('home') + 0.1, a('end') - 0.2], // eases back across the whole sit-back
-    }
-  })
-}
-
+/**
+ * Phone (2160 × 3456, portrait): one camera that never stops, landing on each beat in turn – every
+ * move sets off briskly and settles long and slow, and the next sets off from that settle. Two
+ * distances: a wider one that shows the interface (the ad, the titles, the Fitness button, the
+ * panel, the map) and a closer one for the actions (the search, the drag, P, Pilates, the point).
+ * The dive in, straight away, onto the ad's "Find your sport" → the "Sports Section" / "Sports"
+ * titles → in to the search: the drag (the list moving at half the thumb's pace, so every sport
+ * reads), P, back to Pilates → the tap → the Fitness button lighting up → the panel as its list
+ * drops in → the whole map as the route rolls out and the point lands → the ad, landing slowly as
+ * it rolls out → one long, slow unzoom to the whole kiosk, which goes back to its start at the very
+ * end of it, just as the next loop dives in (one take).
+ */
 function phoneLayout(): Layout {
   const W = 2160
-  return makeLayout(W, 3456, (0.9 * W) / SCREEN.w, 0.005, [
-    overview('start', 1.0),
-    { name: 'ad1', s: 3.52, x: 3232, y: 1080, dwell: 1.0 }, // the ad panel, edge to edge
-    { name: 'fys', s: 4, x: 3232, y: 1671, dwell: 1.6 }, // "Find your sport" + the prompt – read
-    { name: 'titles', s: 3.2, x: 262, y: 1600, dwell: 1.6 }, // the "Sports Section" / "Sports" titles – read
-    { name: 'drag', s: 4.2, x: THUMB_X, y: 1900, dwell: DRAG_TIME, move: { x: DRAG_TO / DRAG_TIME, y: 0 } }, // rides the drag 1:1
-    { name: 'letter', s: 4.2, x: P_X, y: 1840, dwell: 0.9 },
-    { name: 'pwords', s: 2.7, x: 1080, y: 1890, dwell: 1.8, move: { x: 80, y: 0 } }, // a slow read across the P sports
-    { name: 'pilates', s: 2.9, x: PILATES_X, y: 1921, dwell: 0.6 },
-    { name: 'section', s: 2.9, x: 1888, y: 1432, dwell: 1.2 }, // Fitness lights up
-    { name: 'panel', s: 2.9, x: 473, y: 646, dwell: 1.8 }, // the list drops in
-    { name: 'map', s: 2.9, x: 1985, y: 700, dwell: 1.0 }, // the route rolls out…
-    { name: 'fitness', s: 3.4, x: 1640, y: 430, dwell: 1.8 }, // …and the point lands
-    { name: 'ad', s: 2.8, x: 3232, y: 1080, dwell: 2.0 }, // the ad rolls out
-    { name: 'home', s: 1, x: SCREEN.w / 2, y: SCREEN.h / 2, dwell: 2.4 }, // the whole kiosk
-    overview('end', 0, 2.0),
-  ], (a, d) => ({
-    start: 0,
-    ...searchEvents(a),
-    section: a('section') - 0.15,
-    blur: [a('panel') - 0.3, a('panel') + 0.7],
-    dip: [a('panel') - 0.35, a('panel') - 0.2],
-    cascade: { start: a('panel') - 0.15, step: 0.045, dur: 0.6 },
-    pick: a('panel') + 1.0,
-    arrow: a('panel') + 1.1,
-    route: [a('map') - 0.3, a('fitness') + 0.5],
-    end: a('fitness') - 0.05,
-    ad: a('ad') - 0.9,
-    reset: [d('home') + 0.1, a('end') - 0.2], // eases back across the whole sit-back
-  }))
+  const H = 3456
+  const K = (0.9 * W) / SCREEN.w
+  const OX = (W - SCREEN.w * K) / 2
+  const OY = (H - SCREEN.h * K) / 2
+  /** A shot, centred exactly on (x, y) in screen px – even if that shows the navy around the kiosk. */
+  const at = (s: number, x: number, y: number): Cam => ({ s, x: OX + K * x, y: OY + K * y })
+  const VIEW = 3.2 // the interface
+  const ACT = 4.6 // the actions
+  const T: Timeline = {
+    start: 1.2,
+    drag: [10.0, 12.8],
+    grab: 9.85,
+    release: 12.95,
+    tapLetter: 13.6,
+    filter: { out: 13.7, in: 13.95, step: 0.06 },
+    section: 16.9, // as the camera lands on the Fitness button
+    blur: [15.65, 16.0], // the moment Pilates is tapped – no blur after that
+    dip: [15.65, 15.9],
+    cascade: { start: 19.0, step: 0.035, dur: 0.5 }, // as it lands on the panel
+    pick: 20.0,
+    arrow: 20.1,
+    route: [20.8, 22.4], // as it lands on the whole map…
+    end: 22.0, // …the point lands – the end of the main animation
+    ad: 24.0, // as the camera comes in to land on it
+    reset: [29.4, 31.3], // at the end of the slow unzoom, still inside it
+    finger: { in: 9.4, toLetter: [13.05, 13.55], toChip: [15.0, 15.5], tapChip: 15.6, out: 15.75 },
+    easeDrag: true,
+    softFinger: true,
+    scrollChips: 8, // half the desktop's pace
+  }
+  const UNZOOMED: Cam = { s: 0.93, x: W / 2, y: H / 2 }
+  const FIND = at(4.0, 3232, 1650) // the ad: "Find your sport" and its prompt
+  // each move sets off as the one before it settles
+  const STAY = at(4.45, 3232, 1700) // the slow ease in while it stays on "Find your sport"
+  const moves: [number[], Cam][] = [
+    [[3.0, 5.6], STAY], // stay on "Find your sport": the camera keeps easing in, slowly and evenly – never static…
+    [[4.6, 8.2], at(VIEW, 330, 1620)], // …and sets off for the "Sports Section" and "Sports" titles as that creep fades
+    [[8.0, 10.4], at(ACT, 720, 1880)], // in to the search: alphabet, chips and slider…
+    [[9.9, 13.0], at(ACT, 1240, 1880)], // …moving along with the drag, towards P
+    [[13.5, 15.6], at(ACT, PILATES_X, 1900)], // back along the P sports to Pilates
+    [[15.8, 18.2], at(VIEW, 1888, 1432)], // the Fitness button lights up
+    [[17.8, 20.4], at(VIEW, 473, 700)], // the panel: its list drops in
+    [[20.0, 22.6], at(2.45, 1785, 650)], // the whole map: the route rolls out, the point lands
+    [[22.4, 27.0], at(2.2, 3050, 1080)], // the ad, landing slowly as it rolls out
+    [[25.6, 31.6], UNZOOMED], // one long, slow unzoom to the whole kiosk – the loop starts from here
+  ]
+  // the dive in scales about one fixed point, so it moves in a single, straight direction
+  const r = UNZOOMED.s / FIND.s
+  const anchor = { x: (FIND.x - UNZOOMED.x * r) / (1 - r), y: (FIND.y - UNZOOMED.y * r) / (1 - r) }
+  return {
+    W, H, K, OX, OY, T,
+    LOOP: 31.6,
+    cameraAt: (t: number) => {
+      let cam = UNZOOMED
+      const z = land(prog(t, 1.2, 3.8)) // straight away
+      if (z > 0) {
+        const s = logLerp(UNZOOMED.s, FIND.s, z)
+        cam = { s, x: anchor.x + ((UNZOOMED.x - anchor.x) * UNZOOMED.s) / s, y: anchor.y + ((UNZOOMED.y - anchor.y) * UNZOOMED.s) / s }
+      }
+      for (const [[a, b], c] of moves) {
+        const p = prog(t, a, b)
+        const k = land(p)
+        if (k <= 0) break
+        // zoom and position always move together: the same start, the same curve, the same landing
+        // (the stay on "Find your sport" eases evenly, so it never looks static; the final unzoom stays open)
+        const z = c === UNZOOMED ? landOpen(p) : c === STAY ? inOutSine(p) : k
+        cam = { s: logLerp(cam.s, c.s, z), x: lerp(cam.x, c.x, z), y: lerp(cam.y, c.y, z) }
+      }
+      return cam
+    },
+  }
 }
 
-const DESKTOP = desktopLayout()
-const PHONE = phoneLayout()
+/** Desktop's visible finger (screen px): in at the slider, drags it, taps P, taps Pilates. */
+function fingerAt(t: number, T: Timeline, pilatesX: number) {
+  const f = T.finger!
+  const fin = outCubic(prog(t, f.in, f.in + 0.35))
+  const ease = T.softFinger ? reach : inOut
+  const toL = ease(prog(t, f.toLetter[0], f.toLetter[1]))
+  const toC = ease(prog(t, f.toChip[0], f.toChip[1]))
+  let x = lerp(THUMB_X + thumbAt(t, T), P_X, toL)
+  let y = lerp(1992.8, 1804.8, toL) - 30 * Math.sin(Math.PI * toL) // a soft arc
+  x = lerp(x, ROW_LEFT + pilatesX, toC)
+  y = lerp(y, 1921.3, toC) - 24 * Math.sin(Math.PI * toC)
+  return { x, y: y + 50 * (1 - fin), fin, fout: prog(t, f.out, f.out + 0.3) }
+}
+
+/** A tap: 0 → 1 → 0 press around `at`, and the ripple's 0 → 1 after it. */
+const tap = (t: number, at: number) => ({
+  press: Math.sin(Math.PI * prog(t, at - 0.06, at + 0.16)),
+  ripple: prog(t, at, at + 0.55),
+})
+
+/** Debug overlay (`?fps`): frames per second for each second of the clip, worst first – for
+ * checking smoothness on a real phone. */
+function fpsMeter(loop: number) {
+  const el = document.createElement('div')
+  el.style.cssText =
+    'position:fixed;left:8px;top:8px;z-index:99999;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.8);color:#fff;font:12px/1.45 ui-monospace,monospace;white-space:pre;pointer-events:none'
+  document.body.append(el)
+  const frames: number[] = new Array(Math.ceil(loop)).fill(0)
+  const time: number[] = new Array(Math.ceil(loop)).fill(0)
+  let prev = 0
+  let shown = 0
+  return {
+    tick(now: number, t: number) {
+      const dt = prev ? now - prev : 0
+      prev = now
+      if (dt > 0 && dt < 250) {
+        frames[Math.floor(t)]++
+        time[Math.floor(t)] += dt
+      }
+      if (now - shown < 500) return
+      shown = now
+      const total = time.reduce((a, b) => a + b, 0)
+      const avg = (1000 * frames.reduce((a, b) => a + b, 0)) / (total || 1)
+      const worst = frames
+        .map((f, i): [number, number] => [i, time[i] ? (1000 * f) / time[i] : 0])
+        .filter(([, fps]) => fps > 0)
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, 6)
+      el.textContent = `avg ${avg.toFixed(0)} fps\nslowest seconds of the clip:\n` + worst.map(([i, fps]) => `${String(i).padStart(2)}–${i + 1} s  ${fps.toFixed(0)} fps`).join('\n')
+    },
+    remove: () => el.remove(),
+  }
+}
+
+/**
+ * Every loop opens on the whole interface for `hold` seconds before the first zoom sets off: the
+ * whole timeline (camera and every event) plays that much later. It's never quite still: the final
+ * unzoom's last, slow motion carries on into the opening and dies away, the camera starts creeping in
+ * on its own – towards the point the dive zooms to – and the dive takes over from that creep (one take).
+ */
+function withHold(L: Layout, hold: number): Layout {
+  const T = L.T
+  // the camera's motion as the loop ends (log-scale and position, per second)
+  const a = L.cameraAt(L.LOOP - 0.01)
+  const b = L.cameraAt(L.LOOP)
+  const v = [(Math.log(b.s) - Math.log(a.s)) / 0.01, (b.x - a.x) / 0.01, (b.y - a.y) / 0.01]
+  const TAU = 0.35 // how quickly that motion dies away
+  /** How far that motion has carried on, `u` s into the loop – fading as the dive gets going. */
+  const carry = (u: number) => TAU * (1 - Math.exp(-u / TAU)) * (1 - inOutSine(prog(u, hold, hold + 2.2)))
+  // the creep in: about the dive's own fixed point (where the first two moments of the dive agree)
+  const d0 = L.cameraAt(T.start + 0.1)
+  const d1 = L.cameraAt(T.start + 0.5)
+  const ax = (d0.s * d0.x - d1.s * d1.x) / (d0.s - d1.s)
+  const ay = (d0.s * d0.y - d1.s * d1.y) / (d0.s - d1.s)
+  const CREEP = 0.02 // zoom in per second
+  /** How far the camera has crept in, `u` s into the loop: it eases into the creep, and the creep
+   * gives way to the dive. */
+  const creep = (u: number) => CREEP * (u - 0.3 * (1 - Math.exp(-u / 0.3))) * (1 - inOutSine(prog(u, hold, hold + 2.2)))
+  const later = (t: number) => t + hold
+  const span = (r: number[]) => r.map(later)
+  return {
+    ...L,
+    LOOP: L.LOOP + hold,
+    T: {
+      ...T,
+      drag: span(T.drag),
+      grab: later(T.grab),
+      release: later(T.release),
+      tapLetter: later(T.tapLetter),
+      filter: { ...T.filter, out: later(T.filter.out), in: later(T.filter.in) },
+      section: later(T.section),
+      blur: span(T.blur),
+      dip: span(T.dip),
+      cascade: { ...T.cascade, start: later(T.cascade.start) },
+      pick: later(T.pick),
+      arrow: later(T.arrow),
+      route: span(T.route),
+      end: later(T.end),
+      ad: later(T.ad),
+      reset: span(T.reset),
+      finger: T.finger && {
+        in: later(T.finger.in),
+        toLetter: span(T.finger.toLetter),
+        toChip: span(T.finger.toChip),
+        tapChip: later(T.finger.tapChip),
+        out: later(T.finger.out),
+      },
+    },
+    cameraAt: (t) => {
+      const c = L.cameraAt(Math.max(T.start, t - hold))
+      const u = t - T.start
+      const g = Math.exp(creep(u)) // creeping in, about the dive's point
+      const k = carry(u)
+      return { s: c.s * g * Math.exp(v[0] * k), x: ax + (c.x - ax) / g + v[1] * k, y: ay + (c.y - ay) / g + v[2] * k }
+    },
+  }
+}
+
+const HOLD = 0.75 // the whole interface, before the first zoom
+const DESKTOP = withHold(desktopLayout(), HOLD)
+const PHONE = withHold(phoneLayout(), HOLD)
 const PHONE_QUERY = '(max-width: 809px)'
 
 /** Phones get the portrait layout (same breakpoint as the site's phone styles). */
@@ -344,8 +487,72 @@ const LEGEND: [string, string][] = [
   [legendRestroom, 'Restrooms'],
 ]
 
+const LABEL =
+  "Animation: Decathlon's in-store kiosk. Filtering sports by P and picking Pilates highlights the Fitness section, lists its sports, draws the route to it on the store map and shows a Pilates mat ad."
+
+/** Safari (iPhone and Mac): it holds script-driven motion to 60 fps and can't keep GPU animations
+ * of this scene right while the page scrolls – so it plays a recording of the clip instead. */
+const IS_SAFARI = typeof navigator !== 'undefined' && /^((?!chrome|chromium|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent)
+
+/**
+ * The clip: live on desktop, a video in Safari and on every phone (recorded from the live clip at
+ * 120 fps – see
+ * scripts/decathlon-video). `?video` forces the video; `?live` (and `?render`, `?clip`, `?nogpu`,
+ * `?fps`) the live clip; and if Safari won't play the video (e.g. iOS Low Power Mode), it falls back live.
+ */
 export function DecathlonClip() {
-  const L = usePhone() ? PHONE : DESKTOP
+  const phone = usePhone()
+  const [videoFailed, setVideoFailed] = useState(false)
+  const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
+  const live = ['live', 'render', 'clip', 'nogpu', 'fps'].some((k) => q.has(k))
+  if (!videoFailed && !live && (IS_SAFARI || phone || q.has('video'))) return <ClipVideo phone={phone} onFail={() => setVideoFailed(true)} />
+  return <LiveClip />
+}
+
+/** The recording: plays muted on a loop, only while on screen. */
+function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const L = phone ? PHONE : DESKTOP
+  useEffect(() => {
+    const video = ref.current!
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) {
+      // the finished Select state, still
+      const still = () => (video.currentTime = L.T.ad + 2 - L.T.start)
+      video.addEventListener('loadedmetadata', still, { once: true })
+      return () => video.removeEventListener('loadedmetadata', still)
+    }
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) video.play().catch(onFail)
+      else video.pause()
+    })
+    io.observe(video)
+    return () => io.disconnect()
+  }, [L, onFail])
+  return (
+    <div className="dk-host" role="img" aria-label={LABEL}>
+      <video
+        ref={ref}
+        key={phone ? 'phone' : 'desktop'}
+        src={phone ? '/videos/decathlon-phone.mp4' : '/videos/decathlon-desktop.mp4'}
+        muted
+        loop
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+        aria-hidden="true"
+        style={{ display: 'block', width: '100%', aspectRatio: `${L.W} / ${L.H}`, background: '#081130' }}
+      />
+    </div>
+  )
+}
+
+function LiveClip() {
+  const phone = usePhone()
+  const L = phone ? PHONE : DESKTOP
+  // Phones get copies of the two large ad images at the most they're ever shown on a phone screen
+  // (lossless, made on Karel's request) – a third of the pixels to draw while the camera zooms.
+  const adImages = phone ? '/images/decathlon/phone' : '/images/decathlon'
   const hostRef = useRef<HTMLDivElement>(null)
   const cameraRef = useRef<HTMLDivElement>(null)
   const panelItemsRef = useRef<HTMLDivElement>(null)
@@ -363,10 +570,11 @@ export function DecathlonClip() {
   const welcomeRef = useRef<HTMLDivElement>(null)
   const matRef = useRef<HTMLImageElement>(null)
   const matTitleRef = useRef<HTMLDivElement>(null)
+  const fingerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const { W, H, T, LOOP } = L
+    const { W, H, K, OX, OY, T, LOOP } = L
 
     // The route: hide the design's dashed path (the initial SVG draws it) and its outlined route,
     // and draw the route as a stroke along its centre line instead.
@@ -389,100 +597,192 @@ export function DecathlonClip() {
 
     const items = [...panelItemsRef.current!.querySelectorAll<HTMLElement>('[data-cascade]')]
     const pickChips = [...rowPickRef.current!.children] as HTMLElement[]
+    const pilatesPress = pickChips[PICKED.findIndex((x) => x.name === PICK_SPORT)].firstElementChild as HTMLElement
     const letterLabel = letterOnRef.current!.nextElementSibling as HTMLElement
     const secLabel = sectionOnRef.current!.nextElementSibling as HTMLElement
 
     // Measured once fonts are in (layout px, unaffected by the frame's scale).
-    const m = { scroll: 3000 }
+    const m = { scroll: 3000, pilatesX: PILATES_X - ROW_LEFT }
     const measure = () => {
-      m.scroll = (rowAllRef.current!.children[SCROLL_CHIPS] as HTMLElement).offsetLeft
+      m.scroll = (rowAllRef.current!.children[T.scrollChips ?? SCROLL_CHIPS] as HTMLElement).offsetLeft
+      const p = pickChips[PICKED.findIndex((x) => x.name === PICK_SPORT)]
+      m.pilatesX = p.offsetLeft + p.offsetWidth / 2
     }
     measure()
     document.fonts?.ready.then(measure)
+
+    // Every write goes through `put`, which skips a value that hasn't changed: most of the kiosk is
+    // still at any moment, so most frames only touch the camera. (`@name` sets an attribute.)
+    // `record` collects the opacity and transform values frame() sets over a whole loop, so they can be
+    // handed to the GPU; `baked` lists the ones the GPU then runs – frame() leaves those be.
+    const live = { gpu: false } // whether the GPU is running the motion right now
+    const last = new Map<Element, Record<string, string>>()
+    let record: Map<HTMLElement, Record<string, string[]>> | null = null
+    const baked = new Map<Element, Set<string>>()
+    const put = (el: HTMLElement | SVGElement, prop: string, value: string) => {
+      if (record) {
+        if (el instanceof HTMLElement && el !== cameraRef.current && (prop === 'opacity' || prop === 'transform')) {
+          let tracks = record.get(el)
+          if (!tracks) record.set(el, (tracks = {}))
+          ;(tracks[prop] ??= []).push(value)
+        }
+        return
+      }
+      if (baked.get(el)?.has(prop)) return
+      let seen = last.get(el)
+      if (!seen) last.set(el, (seen = {}))
+      if (seen[prop] === value) return
+      seen[prop] = value
+      if (prop[0] === '@') el.setAttribute(prop.slice(1), value)
+      else el.style.setProperty(prop, value)
+    }
+    // An element faded right out is also hidden, so the phone skips it when it redraws the kiosk.
+    const fade = (el: HTMLElement | SVGElement, o: number) => {
+      put(el, 'opacity', String(o))
+      put(el, 'visibility', o < 0.001 ? 'hidden' : '')
+    }
+    const panelInner = panelItemsRef.current!
+
+    // Phone: whatever slides moves by whole screen pixels (as iOS scrolling does), so the drawn
+    // kiosk is never resampled between pixels – no shimmer on thin lines and small text while the
+    // camera pans. `q` is screen pixels per stage pixel (0 = no snapping, on desktop).
+    const px = { q: 0 }
+    const measurePx = () => (px.q = phone ? ((window.devicePixelRatio || 1) * hostRef.current!.clientWidth) / W : 0)
+    measurePx()
+    const pxRo = new ResizeObserver(measurePx)
+    pxRo.observe(hostRef.current!)
+    const snap = (v: number, perPx: number) => (px.q ? Math.round(v * perPx) / perPx : v)
+    /** The camera's transform, relative to its own box (the kiosk, at OX, OY in the stage). */
+    const [BX, BY] = [OX, OY]
+    const cameraTransform = (c: Cam, s: number, snapped: boolean) => {
+      const x = W / 2 + s * (BX - c.x) // where the box's corner lands in the stage
+      const y = H / 2 + s * (BY - c.y)
+      return `translate(${(snapped ? snap(x, px.q) : x) - BX}px, ${(snapped ? snap(y, px.q) : y) - BY}px) scale(${s})`
+    }
 
     const frame = (t: number) => {
       const r = inOut(prog(t, T.reset[0], T.reset[1])) // soft reset back to the initial state
       const keep = 1 - r
 
-      // Camera
+      // Camera (its scale rounded, so a held zoom is exactly the same and never re-renders the kiosk)
       const cam = L.cameraAt(t)
-      cameraRef.current!.style.transform = `translate(${W / 2}px, ${H / 2}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`
+      const s = Math.round(cam.s * 1e6) / 1e6 // fine enough that even the slowest drift moves every frame
+      if (!live.gpu) put(cameraRef.current!, 'transform', cameraTransform(cam, s, true))
+      const perScreenPx = px.q * s * K // screen pixels per kiosk design px
 
       // Scrollbar: grabbed (a little greyer), dragged half way at constant speed, then back to the
       // start as the list filters
       const thumbX = thumbAt(t, T)
-      thumbRef.current!.style.transform = `translateX(${thumbX}px)`
+      put(thumbRef.current!, 'transform', `translateX(${snap(thumbX, perScreenPx)}px)`)
       const held = prog(t, T.grab, T.grab + 0.15) * (1 - prog(t, T.release, T.release + 0.2))
-      thumbHeldRef.current!.style.opacity = String(held)
+      fade(thumbHeldRef.current!, held)
 
       // Chip rows: the full A–Z list scrolls, then gives way to the P sports, packed left
       const scrollX = (thumbX / DRAG_TO) * m.scroll
       // (whole rows fade, not 155 chips one by one – keeps every frame cheap)
       const allOut = outCubic(prog(t, T.filter.out, T.filter.out + 0.25)) * keep
       const rowAll = rowAllRef.current!
-      rowAll.style.opacity = String(1 - allOut)
-      rowAll.style.transform = `translate(${-scrollX}px, ${-8 * allOut}px)`
-      rowAll.style.visibility = allOut > 0.999 ? 'hidden' : ''
-      rowPickRef.current!.style.opacity = String(keep)
+      put(rowAll, 'opacity', String(1 - allOut))
+      put(rowAll, 'transform', `translate(${-snap(scrollX, perScreenPx)}px, ${-8 * allOut}px)`)
+      put(rowAll, 'visibility', allOut > 0.999 ? 'hidden' : '')
+      put(rowPickRef.current!, 'opacity', String(keep))
       pickChips.forEach((el, i) => {
         const k = outQuint(prog(t, T.filter.in + i * T.filter.step, T.filter.in + i * T.filter.step + 0.6))
-        el.style.opacity = String(k)
-        el.style.transform = `translateX(${90 * (1 - k)}px)`
+        fade(el, k)
+        put(el, 'transform', `translateX(${90 * (1 - k)}px)`)
       })
 
       // Letter P: selected on the tap
       const letterOn = outCubic(prog(t, T.tapLetter, T.tapLetter + 0.18)) * keep
-      letterOnRef.current!.style.opacity = String(letterOn)
-      letterLabel.style.color = mix(0x14, 0x1b, 0x56, letterOn) // #141b56 → white, with the fill
+      fade(letterOnRef.current!, letterOn)
+      put(letterLabel, 'color', mix(0x14, 0x1b, 0x56, letterOn)) // #141b56 → white, with the fill
 
       // ── After the Pilates tap: everything at once ──
       // Sports Section: Fitness lights up
       const sec = outCubic(prog(t, T.section, T.section + 0.3)) * keep
-      sectionOnRef.current!.style.opacity = String(sec)
-      secLabel.style.color = mix(0x1d, 0x23, 0x51, sec) // #1d2351 → white, with the fill
+      fade(sectionOnRef.current!, sec)
+      put(secLabel, 'color', mix(0x1d, 0x23, 0x51, sec)) // #1d2351 → white, with the fill
 
       // Panel: blur clears while the content dips, then drops in, row by row
-      blurRef.current!.style.opacity = String(1 - inOut(prog(t, T.blur[0], T.blur[1])) * keep)
+      // …and on the reset it comes back fast (0.35 s), as the list returns – not drawn out over the whole reset
+      const blur = 1 - inOut(prog(t, T.blur[0], T.blur[1])) * (1 - inOut(prog(t, T.reset[0], T.reset[0] + 0.35)))
+      fade(blurRef.current!, blur)
+      // Phone: the blur is a filter on the panel's own content rather than a backdrop blur – the
+      // same look, but drawn once instead of on every frame the camera moves
+      if (phone) put(panelInner, 'filter', blur > 0.005 ? `blur(${(11.35 * blur).toFixed(2)}px)` : 'none')
       const dip = prog(t, T.dip[0], T.dip[1])
       items.forEach((el, i) => {
         const st = T.cascade.start + i * T.cascade.step
         const k = outCubic(prog(t, st, st + T.cascade.dur))
         if (keep < 1 || t < T.dip[0]) {
-          el.style.opacity = ''
-          el.style.transform = ''
+          put(el, 'opacity', '')
+          put(el, 'visibility', '')
+          put(el, 'transform', '')
           return
         }
-        el.style.opacity = String(t < T.cascade.start ? 1 - dip : k)
-        el.style.transform = t < T.cascade.start ? '' : `translateY(${-18 * (1 - k)}px)`
+        fade(el, t < T.cascade.start ? 1 - dip : k)
+        put(el, 'transform', t < T.cascade.start ? '' : `translateY(${-18 * (1 - k)}px)`)
       })
       const pick = outCubic(prog(t, T.pick, T.pick + 0.3)) * keep
-      pickRowRef.current!.style.backgroundColor = `rgb(${lerp(51, 30, pick)}, ${lerp(67, 37, pick)}, ${lerp(193, 103, pick)})`
+      put(pickRowRef.current!, 'background-color', `rgb(${lerp(51, 30, pick)}, ${lerp(67, 37, pick)}, ${lerp(193, 103, pick)})`)
       // The ← arrow: fades in, then hovers gently left and right
       const ai = outCubic(prog(t, T.arrow, T.arrow + 0.4)) * keep
       const hover = t > T.arrow ? Math.sin(((t - T.arrow) / 1.6) * Math.PI * 2) : 0
-      arrowRef.current!.style.opacity = String(ai)
-      arrowRef.current!.style.transform = `translateX(${-9 * hover - 12 * (1 - ai)}px)`
+      fade(arrowRef.current!, ai)
+      put(arrowRef.current!, 'transform', `translateX(${-9 * hover - 12 * (1 - ai)}px)`)
 
-      // Ad, last: the welcome lifts away, the mat rises in and its title follows
-      const adOut = outCubic(prog(t, T.ad, T.ad + 0.45)) * keep
-      const matIn = outCubic(prog(t, T.ad + 0.15, T.ad + 1.15)) * keep
-      const titleIn = outCubic(prog(t, T.ad + 0.35, T.ad + 1.1)) * keep
-      welcomeRef.current!.style.opacity = String(1 - adOut)
-      welcomeRef.current!.style.transform = `translateY(${-40 * adOut}px)`
-      matRef.current!.style.opacity = String(matIn)
-      matRef.current!.style.transform = `translateY(${220 * (1 - matIn)}px)`
-      matTitleRef.current!.style.opacity = String(titleIn)
-      matTitleRef.current!.style.transform = `translateY(${50 * (1 - titleIn)}px)`
+      // Ad, last: the welcome lifts away, the mat rises in and its title follows. On the reset it plays
+      // back in turn rather than cross-fading: the mat and its title sink away, then the welcome rises in.
+      const rd = T.reset[1] - T.reset[0]
+      const exit = inCubic(prog(t, T.reset[0], T.reset[0] + 0.5 * rd))
+      const enter = outCubic(prog(t, T.reset[0] + 0.45 * rd, T.reset[1]))
+      const adOut = outCubic(prog(t, T.ad, T.ad + 0.45)) * (1 - enter)
+      const matIn = outCubic(prog(t, T.ad + 0.15, T.ad + 1.15))
+      const titleIn = outCubic(prog(t, T.ad + 0.35, T.ad + 1.1))
+      fade(welcomeRef.current!, 1 - adOut)
+      put(welcomeRef.current!, 'transform', `translateY(${enter > 0 ? 40 * (1 - enter) : -40 * adOut}px)`)
+      fade(matRef.current!, matIn * (1 - exit))
+      put(matRef.current!, 'transform', `translateY(${220 * (1 - matIn) + 140 * exit}px)`)
+      fade(matTitleRef.current!, titleIn * (1 - exit))
+      put(matTitleRef.current!, 'transform', `translateY(${50 * (1 - titleIn) + 70 * exit}px)`)
 
       // Map: the route runs on from its solid start; the dot and the blue area arrive together
       const draw = outCubic(prog(t, T.route[0], T.route[1])) // rolls out along the route, easing out
-      line.setAttribute('stroke-dashoffset', String(lineLength * (1 - draw)))
-      line.style.opacity = String(keep)
+      put(line, '@stroke-dashoffset', String(lineLength * (1 - draw)))
+      put(line, 'opacity', String(keep))
       const d = outCubic(prog(t, T.end, T.end + 0.5))
-      dot.style.opacity = String(d * keep)
-      dot.setAttribute('transform', `translate(11.454 90.19) scale(${0.4 + 0.6 * d}) translate(-11.454 -90.19)`)
-      fitnessOnRef.current!.style.opacity = String(outCubic(prog(t, T.end, T.end + 0.5)) * keep)
+      fade(dot, d * keep)
+      put(dot, '@transform', `translate(11.454 90.19) scale(${0.4 + 0.6 * d}) translate(-11.454 -90.19)`)
+      fade(fitnessOnRef.current!, d * keep)
 
+      // The visible finger, and the Pilates chip's press
+      if (T.finger) {
+        const fp = fingerAt(t, T, m.pilatesX)
+        const chipTap = tap(t, T.finger.tapChip)
+        const letterTap = tap(t, T.tapLetter)
+        fade(pilatesPress, chipTap.press)
+        const fe = fingerRef.current!
+        fade(fe, fp.fin * (1 - fp.fout))
+        put(fe, 'transform', `translate(${OX - BX + K * fp.x}px, ${OY - BY + K * fp.y}px) scale(${(K / 0.88) * (1 + 0.15 * fp.fout)})`)
+        put(fe, '--press', String(Math.max(held, letterTap.press, chipTap.press)))
+        put(fe, '--ripple', String(t < T.tapLetter - 0.05 ? 1 : t < T.finger.tapChip - 0.2 ? letterTap.ripple : chipTap.ripple))
+      }
+    }
+
+    // ?render: the clip alone, filling the window, drawn at any moment on request – for recording
+    // Safari's video frame by frame (`window.__dkRender(t)`; the loop is `__dkLoop`).
+    if (new URLSearchParams(window.location.search).has('render')) {
+      const host = hostRef.current!
+      host.style.cssText = 'position:fixed;left:0;top:0;width:100vw;z-index:2147483647'
+      const w = window as unknown as Record<string, unknown>
+      w.__dkLoop = { start: T.start, end: LOOP }
+      w.__dkRender = (t: number) => frame(t)
+      frame(T.start)
+      return () => {
+        pxRo.disconnect()
+        line.remove()
+        panelInner.style.filter = ''
+      }
     }
 
     // Debug: ?clip=10.8 freezes the clip at that second (for reviewing individual moments).
@@ -494,29 +794,111 @@ export function DecathlonClip() {
       document.fonts?.ready.then(() => frame(at))
       return () => {
         cancelAnimationFrame(id)
+        pxRo.disconnect()
         line.remove()
+        panelInner.style.filter = ''
       }
+    }
+
+    // The graphics hardware runs the motion (at the screen's own rate – 120 Hz on ProMotion screens,
+    // where script-driven motion in Safari is held to 60). The camera's path and every fade and slide
+    // frame() would set are sampled over the whole loop at 60 Hz and handed to the GPU as animations
+    // on one clock. The browser draws the kiosk once, sharp at the closest zoom of the coming second
+    // (in 15 % steps), and the GPU only scales and slides that picture – nothing is redrawn, so
+    // nothing re-snaps and glitters while the camera moves. The camera's animation is the clock for
+    // what's left to the script (colours, the route, the finger's press). `?nogpu` turns it off.
+    // Not in Safari: it can't keep GPU animations of a scene this size right while the page scrolls
+    // (parts of the kiosk go missing or overlap as it scrolls into view), so Safari gets the script.
+    const span = LOOP - T.start
+    let gpu: { anim: Animation; all: Animation[]; raster: number[]; n: number; at: number } | null = null
+    let stopped = false
+    const startGpu = () => {
+      if (stopped) return
+      measure() // the fonts are in: the sports' real widths
+      const n = Math.round(span * 60)
+      const at = (i: number) => T.start + (i / n) * span
+      const path = Array.from({ length: n + 1 }, (_, i) => L.cameraAt(at(i)))
+      const step = Math.log(1.15)
+      const raster = path.map((_, i) => {
+        let most = 0
+        for (let j = i; j <= Math.min(n, i + 60); j++) most = Math.max(most, path[j].s)
+        return Math.exp(Math.ceil(Math.log(most) / step) * step)
+      })
+      const timing = { duration: span * 1000, iterations: Infinity }
+      const anim = cameraRef.current!.animate(path.map((c) => ({ transform: cameraTransform(c, c.s, false) })), timing)
+      const all = [anim]
+      // every opacity and transform frame() sets, over the loop (only the moments it changes are kept)
+      record = new Map()
+      for (let i = 0; i <= n; i++) frame(at(i))
+      const tracks = record
+      record = null
+      tracks.forEach((props, el) => {
+        for (const [prop, values] of Object.entries(props)) {
+          if (values.length !== n + 1 || values.every((v) => v === values[0])) continue
+          const css = (v: string) => (v !== '' ? v : prop === 'opacity' ? '1' : 'none')
+          const keyframes: Keyframe[] = []
+          values.forEach((v, i) => {
+            if (i === 0 || i === n || v !== values[i - 1] || v !== values[i + 1]) keyframes.push({ offset: i / n, [prop]: css(v) })
+          })
+          all.push(el.animate(keyframes, timing))
+          if (!baked.has(el)) baked.set(el, new Set())
+          baked.get(el)!.add(prop)
+        }
+      })
+      // one clock, carrying on from where the script had got to
+      const startTime = Number(document.timeline.currentTime) - elapsed * 1000
+      all.forEach((a) => (a.startTime = startTime))
+      if (!visible) all.forEach((a) => a.pause())
+      gpu = { anim, all, raster, n, at: 0 }
+      live.gpu = true
+    }
+    const safari = /^((?!chrome|chromium|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent)
+    if (!safari && 'animate' in Element.prototype && !new URLSearchParams(window.location.search).has('nogpu')) {
+      Promise.resolve(document.fonts?.ready).then(startGpu)
     }
 
     let raf = 0
     let elapsed = 0
     let prev = 0
     let visible = true
-    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { rootMargin: '200px' })
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting
+      gpu?.all.forEach((a) => (visible ? a.play() : a.pause()))
+    }, { rootMargin: '200px' })
     if (hostRef.current) io.observe(hostRef.current)
+    const meter = new URLSearchParams(window.location.search).has('fps') ? fpsMeter(LOOP) : null
     const tick = (now: number) => {
       if (prev && visible) elapsed += Math.min(now - prev, 100) / 1000
       prev = now
-      if (visible) frame(T.start + (elapsed % (LOOP - T.start)))
+      let t = T.start + (elapsed % span)
+      if (gpu) {
+        const into = (((Number(gpu.anim.currentTime) || 0) / 1000) % span + span) % span
+        t = T.start + into
+        // the scale the kiosk is drawn at (the animation runs on top of it): changes only per step
+        const R = gpu.raster[Math.round((into / span) * gpu.n)]
+        if (R !== gpu.at) {
+          gpu.at = R
+          put(cameraRef.current!, 'transform', cameraTransform(L.cameraAt(t), R, false))
+        }
+      }
+      if (visible) {
+        frame(t)
+        meter?.tick(now, t)
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => {
       cancelAnimationFrame(raf)
+      stopped = true
+      gpu?.all.forEach((a) => a.cancel())
       io.disconnect()
+      pxRo.disconnect()
       line.remove()
+      panelInner.style.filter = ''
+      meter?.remove()
     }
-  }, [L])
+  }, [L, phone])
 
   let cascadeIndex = 0
   const cascade = () => ({ 'data-cascade': cascadeIndex++ })
@@ -526,17 +908,18 @@ export function DecathlonClip() {
       ref={hostRef}
       className="dk-host"
       role="img"
-      aria-label="Animation: Decathlon's in-store kiosk. Filtering sports by P and picking Pilates highlights the Fitness section, lists its sports, draws the route to it on the store map and shows a Pilates mat ad."
+      aria-label={LABEL}
     >
-      <ScaledFrame width={L.W} height={L.H} className="dk">
-        <div className="dk__camera" ref={cameraRef}>
-          <div className="dk__screen" style={{ left: L.OX, top: L.OY, transform: `scale(${L.K})` }}>
+      <ScaledFrame width={L.W} height={L.H} className={phone ? 'dk dk--phone' : 'dk'}>
+        {/* The camera is exactly the kiosk's rectangle – the smallest layer the GPU has to hold */}
+        <div className="dk__camera" ref={cameraRef} style={{ left: L.OX, top: L.OY, width: SCREEN.w * L.K, height: SCREEN.h * L.K }}>
+          <div className="dk__screen" style={{ transform: `scale(${L.K})` }}>
             <div className="dk__main">
               <div className="dk__top">
                 {/* Category panel */}
                 <div className="dk__panel">
                   <div className="dk__panel-inner" ref={panelItemsRef}>
-                    <img className="dk__icon" src={sportIcon} alt="" {...cascade()} />
+                    <img className="dk__icon" src={sportIcon} alt="" /> {/* stays put – only the list drops in */}
                     <div className="dk__panel-body">
                       <div className="dk__title-row" {...cascade()}>
                         <p className="dk__title">Fitness</p>
@@ -636,6 +1019,7 @@ export function DecathlonClip() {
                       <div className="dk__row" ref={rowPickRef}>
                         {PICKED.map((s) => (
                           <div className="dk__chip" key={s.name} style={{ opacity: 0 }}>
+                            <div className="dk__chip-press" />
                             <span>{s.name}</span>
                           </div>
                         ))}
@@ -656,17 +1040,23 @@ export function DecathlonClip() {
             <div className="dk__ad">
               <div className="dk__ad-layer" ref={welcomeRef}>
                 <div className="dk__welcome">
-                  <img src="/images/decathlon/welcome.png" alt="" />
+                  <img src={`${adImages}/welcome.png`} alt="" />
                 </div>
                 <p className="dk__prompt">Select section or search by sport</p>
               </div>
               <img className="dk__mat" src="/images/decathlon/mat.png" alt="" ref={matRef} style={{ opacity: 0 }} />
               <div className="dk__mat-title" ref={matTitleRef} style={{ opacity: 0 }}>
-                <img src="/images/decathlon/mat-title.png" alt="" />
+                <img src={`${adImages}/mat-title.png`} alt="" />
               </div>
             </div>
           </div>
 
+          {L.T.finger && (
+            <div className="dk__finger" ref={fingerRef}>
+              <div className="dk__finger-ring" />
+              <div className="dk__finger-dot" />
+            </div>
+          )}
         </div>
       </ScaledFrame>
     </div>

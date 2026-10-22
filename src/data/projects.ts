@@ -163,18 +163,18 @@ const allProjects: Project[] = [
     ],
   },
   {
-    // TODO: placeholder lorem ipsum and empty images — replace with Decathlon's own copy and images.
+    // TODO: the cover thumbnail (Decathlon_thumb.webp) is still to come.
     slug: 'decathlon',
     title: 'Decathlon',
     tagline: 'Navigation kiosk design',
     categories: ['visuals-interfaces'],
     featured: true,
     intro:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua – ut enim ad minim veniam.',
+      'I designed the in-store navigation kiosk for Decathlon. Shoppers pick a sports section or search a sport from A to Z, and the kiosk shows them the way – the section’s sports, the route across the store map from where they stand, and a matching product next to it.',
     year: '2026',
-    delivered: 'Lorem Ipsum · Dolor Sit Amet · Consectetur',
+    delivered: 'Kiosk Interface Design · Wayfinding Flow · Store Map · Motion Prototype',
     impact:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+      'Part of my kiosk work at POS Digital for Decathlon, KIA and Marriott – touchscreen interfaces serving more than 50 000 users every month.',
     gallery: [
       { type: 'section', name: 'decathlon-clip' }, // 3840 × 2700 animated kiosk clip
     ],
