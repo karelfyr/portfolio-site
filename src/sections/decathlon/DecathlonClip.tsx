@@ -509,16 +509,22 @@ export function DecathlonClip() {
   return <LiveClip />
 }
 
-/** The recording: plays muted on a loop, only while on screen. */
+/** The recording: plays by itself, muted, on a seamless loop (each file is exactly one loop) – it
+ * starts as soon as it can play through without stalling and the clip is near the screen, fades in
+ * gently, and pauses while it's scrolled away. */
 function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
   const ref = useRef<HTMLVideoElement>(null)
+  const [shown, setShown] = useState(false)
   const L = phone ? PHONE : DESKTOP
   useEffect(() => {
     const video = ref.current!
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduce) {
       // the finished Select state, still
-      const still = () => (video.currentTime = L.T.ad + 2 - L.T.start)
+      const still = () => {
+        video.currentTime = L.T.ad + 2 - L.T.start
+        setShown(true)
+      }
       video.addEventListener('loadedmetadata', still, { once: true })
       return () => video.removeEventListener('loadedmetadata', still)
     }
@@ -526,14 +532,36 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
     video.muted = true
     video.defaultMuted = true
     video.setAttribute('muted', '')
-    const io = new IntersectionObserver(([e]) => {
+    let near = false
+    let enough = video.readyState >= 4 // HAVE_ENOUGH_DATA: it can play through without stalling
+    const play = () => {
+      if (!near || !enough) return
       // only a refusal to autoplay (e.g. iOS Low Power Mode) falls back to the live clip – not a play
       // interrupted by scrolling away
-      if (e.isIntersecting) video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && onFail())
-      else video.pause()
-    })
+      video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && onFail())
+    }
+    const onEnough = () => {
+      enough = true
+      play()
+    }
+    const onPlaying = () => setShown(true)
+    video.addEventListener('canplaythrough', onEnough)
+    video.addEventListener('playing', onPlaying)
+    const io = new IntersectionObserver(
+      ([e]) => {
+        near = e.isIntersecting
+        if (near) play()
+        else video.pause()
+      },
+      { rootMargin: '300px 0px' },
+    )
     io.observe(video)
-    return () => io.disconnect()
+    play()
+    return () => {
+      io.disconnect()
+      video.removeEventListener('canplaythrough', onEnough)
+      video.removeEventListener('playing', onPlaying)
+    }
   }, [L, onFail])
   return (
     <div className="dk-host" role="img" aria-label={LABEL}>
@@ -547,7 +575,14 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
         preload="auto"
         disablePictureInPicture
         aria-hidden="true"
-        style={{ display: 'block', width: '100%', aspectRatio: `${L.W} / ${L.H}`, background: '#081130' }}
+        style={{
+          display: 'block',
+          width: '100%',
+          aspectRatio: `${L.W} / ${L.H}`,
+          background: '#081130',
+          opacity: shown ? 1 : 0, // fades in once it's playing, never pops in
+          transition: 'opacity 0.6s cubic-bezier(0.3, 0, 0.1, 1)',
+        }}
       />
     </div>
   )

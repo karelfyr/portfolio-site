@@ -163,12 +163,13 @@ const allProjects: Project[] = [
     ],
   },
   {
-    // TODO: the cover thumbnail (Decathlon_thumb.webp) is still to come.
     slug: 'decathlon',
     title: 'Decathlon',
     tagline: 'Navigation kiosk design',
+    cover: '/images/Thumbnails/decathlon_thumb.webp',
     categories: ['visuals-interfaces'],
     featured: true,
+    hero: '/images/decathlon/Decathlon_1.webp',
     intro:
       'I designed the in-store navigation kiosk for Decathlon. Shoppers pick a sports section or search a sport from A to Z, and the kiosk shows them the way – the section’s sports, the route across the store map from where they stand, and a matching product next to it.',
     year: '2026',
