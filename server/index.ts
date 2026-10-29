@@ -94,7 +94,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, path: string
 /* ── Static files (with SPA fallback) ─── */
 const gzCache = new Map<string, Buffer>()
 
+/** Friendly addresses for the stand-alone pages in public/. */
+const ALIASES: Record<string, string> = { '/signageexperiencedesign': '/signage.html' }
+
 async function serveStatic(req: IncomingMessage, res: ServerResponse, path: string) {
+  path = ALIASES[path.replace(/\/+$/, '')] ?? path
   let file = normalize(join(DIST, decodeURIComponent(path)))
   if (!file.startsWith(DIST)) return json(res, 400, { error: 'Bad path' })
   let info = await stat(file).catch(() => null)

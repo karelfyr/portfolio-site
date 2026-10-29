@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Karel Fyrbach — Digital signage visualizations and interfaces</title>
+<!-- The portfolio's own fonts: Switzer (display), Inter (UI), Open Sauce One (body) -->
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.3.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.3.0/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sauce-one@5.3.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sauce-one@5.3.0/500.css">
+<style>
+  /* ── The portfolio's design tokens (src/index.css) ─────────────────── */
+  :root {
+    --bg: #030303; /* 1% above black: reads as black, avoids OLED smear on scroll */
+    --fg: #f5f5f5;
+    /* text greys, all stepped down by the same factor (×0.88) from #d6d6d6 / #b8b8b8 / #969696 / #767676,
+       so every level keeps its distance to the next; titles, prices and buttons stay white */
+    --text: #bdbdbd;
+    --muted: #a2a2a2;
+    --dim: #848484;
+    --faint: #686868;
+    --rule: #0d0d0d;
+    --edge: rgba(255, 255, 255, 0.16);
+    --edge-strong: rgba(255, 255, 255, 0.24);
+    --edge-quiet: rgba(255, 255, 255, 0.08);
+    --gutter: 40px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --track-hero: -0.045em;
+    --track-display: -0.035em;
+    --track-caps-strong: -0.03em;
+    --track-caps: -0.01em;
+    --track-ui: -0.02em;
+    --track-body: 0.01em;
+    --word-display: 0.06em;
+    --font-display: 'Switzer', 'Inter', system-ui, sans-serif;
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-body: 'Open Sauce One', 'Inter', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 80px; } /* jumps stop below the fixed header */
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4, p, dl, dt, dd, ul, ol { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  ul { padding: 0; list-style: none; }
+  a { color: inherit; text-decoration: none; }
+  img, video { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+  /* Type – one scale, about 20% between steps, no new styles: emphasis comes from weight or opacity.
+       13 notes · labels · tags        15 body · list items · buttons     18 lead · step names
+       22 card, plan and sheet names   36 prices                          48 section headlines   80 hero
+     Phones: 13 · 15 · 17 · 20 · 28 · 30 · 34 – nothing below 13px anywhere.
+     Spacing – one scale, nothing off it:
+       4 name→its line   8 inline (buttons, price + unit)   12 label→its list, icon→text   16 between rows
+       and paragraphs   20 the grid gutter, a title→its text, a rule→what follows inside a group
+       40 between groups, a headline→its content, text→its action   64 a block→its media or trailing action
+       80 between sections · boxes 48px top/bottom, 40px sides. Phones keep the scale; only boxes shrink
+       to 32px / 24px and sections to 64px.
+     Tracking opens up as the size drops (small text +0.03em, caps labels +0.02em) and tightens as it
+     grows (headlines and prices −0.035em, the hero −0.045em). */
+  .title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(48px, 7vw, 96px);
+    line-height: 1;
+    letter-spacing: var(--track-hero);
+    word-spacing: var(--word-display);
+    text-transform: uppercase;
+  }
+  .h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: var(--track-display);
+    word-spacing: var(--word-display);
+    text-transform: uppercase;
+    max-width: 24ch;
+    text-wrap: balance;
+  }
+  .h2--line { max-width: none; } /* a headline short enough to run on one line */
+  .h3 {
+    font-family: var(--font-ui);
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1.15;
+    letter-spacing: var(--track-caps-strong);
+    text-transform: uppercase;
+  }
+  .label {
+    font-family: var(--font-ui);
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .label--muted { color: var(--muted); }
+  .label--dim { color: var(--dim); }
+  /* running text is never pure white – var(--text) reads softer on black; white is kept for titles, prices and buttons */
+  .body { font-family: var(--font-body); font-size: 15px; line-height: 24px; letter-spacing: var(--track-body); text-wrap: pretty; color: var(--text); }
+  .body--muted { color: var(--muted); }
+  /* measure: no line runs past ~12 words */
+  .body, .footnote { max-width: 48ch; }
+  .lead { font-size: 18px; line-height: 28px; max-width: 52ch; color: var(--muted); letter-spacing: 0; }
+
+  /* Layout */
+  .container { width: 100%; max-width: 1920px; margin: 0 auto; padding: 0 var(--gutter); }
+  /* the site's rhythm: 80px between sections, 40px under a heading, 20px inside grids */
+  .section { padding: 80px 0; }
+  .section--rule { border-top: 0; } /* no lines between the page's sections – the spacing separates them */
+  .head { display: flex; flex-direction: column; gap: 20px; }
+  /* The page grid: 12 columns, 20px gutters, inside the 40px page margin. Every section snaps to it –
+     thirds span 4, quarters 3, halves 6 – and boxes have no inner padding on the grid side, so what's
+     inside them lines up with the columns outside. */
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .media { position: relative; overflow: hidden; background: #111; }
+  .media video, .media img { width: 100%; height: 100%; object-fit: cover; }
+  .placeholder {
+    width: 100%; height: 100%;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #141414, #1d1d1d);
+    color: var(--dim);
+    font-family: var(--font-ui); font-size: 13px; letter-spacing: var(--track-body); text-align: center; padding: 20px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; padding: 0 17px;
+    background: #fff; color: #000;
+    font-family: var(--font-body); font-weight: 500; font-size: 15px;
+    letter-spacing: var(--track-caps-strong); text-transform: uppercase; white-space: nowrap;
+    box-shadow: 0 0.6px 0.6px -1.25px rgba(0,0,0,.14), 0 2.3px 2.3px -2.5px rgba(0,0,0,.15), 0 10px 10px -3.75px rgba(0,0,0,.06);
+    transition: transform 0.4s var(--ease), background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  }
+  .btn:hover { transform: translateY(-2px); background: var(--fg); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn--ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+  .btn--ghost:hover { background: transparent; box-shadow: inset 0 0 0 1px var(--fg); }
+  .link-hover { transition: opacity 0.3s var(--ease); }
+  .link-hover:hover { opacity: 0.6; }
+
+  /* Nav */
+  .nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between; gap: 40px;
+    padding: 20px var(--gutter);
+    background: var(--bg);
+  }
+  .nav__logo { font-family: var(--font-ui); font-weight: 500; font-size: 15px; line-height: 18px; letter-spacing: var(--track-caps-strong); text-transform: uppercase; }
+  .nav__links { display: flex; gap: 20px; }
+
+  /* Hero */
+  .hero { padding: 160px 0 0; }
+  /* on the 3-column grid: the title left across two thirds, the sub and CTAs in the last third,
+     level with the title's top; then the client logos drifting past, then the reel */
+  .hero__main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+  .hero__title { grid-column: 1 / 3; font-size: clamp(40px, 5.4vw, 80px); letter-spacing: var(--track-display); }
+  .hero__side { display: flex; flex-direction: column; gap: 40px; padding-top: 8px; } /* 8px: its first line meets the title's cap height */
+  .hero__sub { max-width: 46ch; }
+  .nowrap { white-space: nowrap; }
+  .hero__ctas { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hero__video { margin-top: 64px; aspect-ratio: 3648 / 1680; }
+  /* the home page's logo strip: equal 1000 × 600 frames, faded at both ends, drifting endlessly */
+  .marquee { margin-top: 64px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+  .marquee__track { display: flex; width: max-content; animation: drift 40s linear infinite; }
+  .marquee__frame { position: relative; flex: 0 0 auto; width: 160px; margin-right: 64px; aspect-ratio: 1000 / 600; }
+  .marquee__frame img { position: absolute; height: auto; max-width: none; opacity: 0.7; user-select: none; -webkit-user-drag: none; }
+  @keyframes drift { to { transform: translateX(-50%); } }
+
+  /* Cards */
+  .card { display: flex; flex-direction: column; gap: 20px; }
+  .card__text { display: flex; flex-direction: column; gap: 4px; }
+  .card .h3 { text-transform: none; letter-spacing: var(--track-ui); }
+
+
+  /* Experiences */
+  .after-head { margin-top: 40px; }
+  /* Three ways: one video on the left, the three numbered headings on the right. Clicking a heading
+     opens its text (the others fold to the heading alone) and crossfades the video to its own clip. */
+  /* on the 3-column grid: the video across the first two thirds, the list in the last */
+  .ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+  .ways__media { grid-column: 1 / 3; aspect-ratio: 16 / 10; }
+  .ways__media video { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s var(--ease); }
+  .ways__media video.is-on { opacity: 1; }
+  /* one thin line between the three; nothing inside them */
+  .way + .way { border-top: 1px solid var(--edge); }
+  /* heading on the left in sentence case, its number at the far right in the same size, faded */
+  .way__btn { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 20px 0; text-align: left; color: var(--dim); transition: color 0.3s var(--ease), padding 0.5s var(--ease); }
+  /* proximity: an open title sits close to its text (16px), the next title stays 20px off the line;
+     the first title starts level with the top of the video */
+  .way.is-on .way__btn { padding-bottom: 20px; }
+  .way:first-child .way__btn { padding-top: 0; }
+  /* the closed titles step well back so the open one is plainly the highlight; hover lifts one halfway */
+  .way:not(.is-on) .way__btn { color: #5e5e5e; }
+  .way:not(.is-on) .way__btn:hover { color: var(--muted); }
+  .way.is-on .way__btn { color: var(--fg); }
+  .way__title, .way__num { font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 1.2; letter-spacing: var(--track-ui); }
+  .way__num { order: 2; flex: none; color: rgba(255, 255, 255, 0.18); }
+  .way.is-on .way__num { color: rgba(255, 255, 255, 0.35); }
+  .way__body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s var(--ease); }
+  .way__body > div { overflow: hidden; display: flex; flex-direction: column; gap: 40px; }
+  .way.is-on .way__body { grid-template-rows: 1fr; }
+  .way.is-on .way__body > div { padding-bottom: 40px; }
+  .way:not(.is-on) .way__body > div { visibility: hidden; }
+  /* the quiet proof under the pitch: opened-up tracking for the small size, in the faintest text grey */
+  .way__note { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); max-width: 62ch; }
+  /* the pitch in three short groups – problem, what I do, payoff – in a softer near-white that reads
+     easier on black than the muted grey, without the glow of pure white */
+  .way__pitch { display: flex; flex-direction: column; gap: 16px; }
+  .way__pitch p { color: var(--text); }
+  /* desktop: half and half on the 12-column grid. The video keeps one fixed 4:3 frame; the list takes exactly
+     its height (contain: size, so the text never pushes the row taller) – 01's title level with the top edge,
+     a closing line level with the bottom. The open item fills the space in between: pitch at the top, the
+     proof note low in the box, 20px off the next line. Switching only swaps the text; the block keeps its shape. */
+  @media (min-width: 1200px) {
+    .ways { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .ways__media { grid-column: 1 / 7; aspect-ratio: 4 / 3; }
+    .ways__list { grid-column: 7 / 13; align-self: stretch; contain: size; display: flex; flex-direction: column; border-bottom: 1px solid var(--edge); }
+    /* the switch plays in turn: the old text fades out (ease-in, 200ms), the titles glide on one curve
+       (600ms, quick leave and long settle), then the new lines rise in one after another (40ms apart).
+       The text is laid out at its final open height (--way-open, set by the script), so the box only
+       clips and reveals it and nothing reflows while it moves. */
+    .way { display: flex; flex-direction: column; flex: 0 0 auto; transition: flex-grow 0.6s cubic-bezier(0.3, 0, 0.1, 1); }
+    .way.is-on { flex-grow: 1; }
+    .way__body { display: block; flex: 1 1 0; min-height: 0; overflow: hidden; contain: size; transition: none; }
+    .way__body > div { height: var(--way-open, auto); overflow: visible; justify-content: space-between; padding-bottom: 20px; }
+    .way:not(.is-on) .way__body > div { visibility: hidden; transition: visibility 0s 0.6s; }
+    .way.is-on .way__body > div { padding-bottom: 20px; }
+    .way__pitch > p, .way__note { opacity: 0; transform: translateY(12px); transition: opacity 0.2s cubic-bezier(0.5, 0, 0.75, 0), transform 0.2s cubic-bezier(0.5, 0, 0.75, 0); }
+    .way.is-on .way__pitch > p, .way.is-on .way__note { opacity: 1; transform: none; transition: opacity 0.5s var(--ease) var(--in), transform 0.6s var(--ease) var(--in); }
+    .way__pitch > p:nth-child(1) { --in: 0.22s; }
+    .way__pitch > p:nth-child(2) { --in: 0.26s; }
+    .way__pitch > p:nth-child(3) { --in: 0.30s; }
+    .way__note { --in: 0.36s; }
+  }
+  @media (min-width: 1200px) and (prefers-reduced-motion: reduce) {
+    .way, .way__pitch > p, .way__note { transition: none !important; }
+  }
+  .ways__tabs { display: none; }
+  /* below desktop the services become tabs: one row of names (it scrolls sideways if it doesn't fit), the
+     video under it, then the text. All three texts share one grid cell, so the block is always as tall as the
+     longest – picking a tab swaps the video and the text in place and nothing below moves. The swap plays
+     in turn: the old text fades out (200ms), the new one fades in after it. */
+  @media (max-width: 1199px) {
+    .ways__tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--edge); }
+    .ways__tab { flex: none; min-height: 44px; margin-bottom: -1px; border-bottom: 1px solid transparent; font-family: var(--font-ui); font-weight: 500; font-size: 15px; letter-spacing: var(--track-ui); color: #5e5e5e; transition: color 0.3s var(--ease), border-color 0.3s var(--ease); }
+    .ways__tab.is-on { color: var(--fg); border-bottom-color: var(--fg); }
+    .ways__list { display: grid; }
+    .way { grid-area: 1 / 1; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.2s cubic-bezier(0.5, 0, 0.75, 0), visibility 0s 0.2s; }
+    .way.is-on { opacity: 1; visibility: visible; transition: opacity 0.4s var(--ease) 0.2s, visibility 0s; }
+    .way + .way { border-top: 0; }
+    .way__btn { display: none; }
+    .way__body, .way.is-on .way__body { display: flex; flex: 1; }
+    .way__body > div, .way.is-on .way__body > div { flex: 1; overflow: visible; justify-content: flex-start; gap: 20px; padding-bottom: 0; }
+    /* the proof note follows the text: a soft line, 20px either side; any spare height falls below it */
+    .way__note { padding-top: 20px; border-top: 1px solid var(--edge); }
+    .way:not(.is-on) .way__body > div { visibility: inherit; }
+  }
+  /* small desktops: half a column is too short a frame for the longest pitch, so the video takes 7 of 12 */
+  @media (min-width: 1200px) and (max-width: 1399px) {
+    .ways__media { grid-column: 1 / 8; }
+    .ways__list { grid-column: 8 / 13; }
+  }
+
+  /* How I work: one row per track on the page grid – the track's name in the first third, its four
+     steps in a 2 × 2 grid across the other two. Each step is a subgrid (name, text), so the texts in a
+     row start level. */
+  .tracks { display: flex; flex-direction: column; gap: 40px; }
+  .track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding-top: 40px; border-top: 1px solid var(--edge); }
+  .track__head { font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 1.3; letter-spacing: var(--track-caps-strong); text-transform: uppercase; }
+  /* read across first: 01 and 02 in the top row, 03 and 04 under them */
+  .line { grid-column: 2 / 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); grid-auto-flow: row; column-gap: 20px; row-gap: 40px; }
+  /* the number hangs left of the column; name and text start on the grid column's edge */
+  .node { position: relative; grid-row: span 2; display: grid; grid-template-rows: subgrid; row-gap: 4px; }
+  .node__title { font-family: var(--font-ui); font-weight: 500; font-size: 18px; line-height: 1.3; letter-spacing: var(--track-ui); }
+  .node > .node__num { position: absolute; top: 0; right: calc(100% + 12px); font-family: var(--font-ui); font-weight: 400; font-size: 18px; line-height: 1.3; letter-spacing: var(--track-ui); color: rgba(255, 255, 255, 0.35); }
+  .node__text { color: var(--muted); max-width: 32ch; } /* max ~8 words a line in this section */
+
+  /* Why me: one outlined frame on the page's thirds – the only line in the section; spacing does the rest.
+     The portrait flush in the first third, the headline across the other two, then hiring in-house (grey)
+     in the second third beside me (ticked, white) in the last. The two sides are subgrids of the same rows,
+     so both lists and both totals sit level. */
+  .why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 20px; border: 1px solid var(--edge); }
+  /* as tall as the text beside it, 20px short of its third: with the gutter that leaves 40px between the
+     photo and the text, the same as the frame's right padding */
+  .why__photo { grid-column: 1; align-self: stretch; width: calc(100% - 20px); }
+  /* the file's last pixel row is a light seam; 2px of extra height pushes it under the frame's clip */
+  .why__photo img { height: calc(100% + 2px); }
+  /* hierarchy by distance alone: the three parts – headline, comparison, footnote – 64px apart; inside the
+     comparison 40 between groups (lists → totals, included → extras), 16 between rows, 12 under a label */
+  .why__body { grid-column: 2 / 4; display: flex; flex-direction: column; gap: 64px; padding: 48px 40px 48px 0; }
+  /* Inside: who (small caps) → what each side gives you → the monthly cost, both figures the same size.
+     My side is white with ticks; theirs stays grey. */
+  /* hiring in-house fills the second third, me the last; one line between them, in the middle of the gutter,
+     with 20px either side of it (the frame's right padding comes out of my side only) */
+  .vs { display: grid; grid-template-columns: calc((100% + 20px) / 2 + 10px) minmax(0, 1fr); grid-template-rows: repeat(3, auto); }
+  .vs__side--them { padding-right: 20px; border-right: 1px solid var(--edge); }
+  .vs__side--me { padding-left: 20px; }
+  .vs__side { grid-row: span 3; display: grid; grid-template-rows: subgrid; row-gap: 0; }
+  .vs__who { margin-bottom: 12px; color: var(--dim); }
+  .vs__list { max-width: none; display: flex; flex-direction: column; gap: 16px; line-height: 20px; margin-bottom: 40px; }
+  .vs__price { font-family: var(--font-display); font-weight: 500; font-size: 36px; line-height: 1; letter-spacing: var(--track-display); }
+  .vs__price span { color: rgba(255, 255, 255, 0.26); }
+  .vs__side--them .vs__price { color: var(--dim); }
+  /* each role's cost on the right edge of its column */
+  .vs__side--them .vs__list li { display: flex; justify-content: space-between; gap: 20px; color: var(--dim); }
+  /* what hiring costs on top mirrors what I add on top: the same group gap, the same square, a grey dash */
+  .vs__side--them .vs__list li.is-extra { display: grid; grid-template-columns: 20px 1fr; gap: 12px; justify-content: stretch; }
+  .vs__side--them .vs__list li:not(.is-extra) + .is-extra { margin-top: 24px; }
+  .vs__side--them .vs__list li.is-extra::before { content: ''; width: 20px; height: 20px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' fill='%231c1c1c'/%3E%3Cpath d='M5 9 H13' stroke='%23848484' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .vs__side--me .vs__who { color: var(--fg); }
+  .vs__side--me .vs__list li { display: grid; grid-template-columns: 20px 1fr; gap: 12px; color: var(--text); }
+  /* as in pricing: what's included gets a plain tick; what you gain on top follows a group gap (40), in the square tick */
+  .vs__side--me .vs__list li:not(.is-extra)::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M4.5 9.5 L7.5 12.5 L13.5 5.5' fill='none' stroke='%23969696' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E"); }
+  .vs__side--me .vs__list li:not(.is-extra) + .is-extra { margin-top: 24px; }
+  .vs__side--me .vs__list li::before { content: ''; width: 20px; height: 20px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' fill='%232e2e2e'/%3E%3Cpath d='M4.5 9.5 L7.5 12.5 L13.5 5.5' fill='none' stroke='%23ffffff' stroke-width='1.75' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .footnote { margin-top: 20px; color: var(--dim); font-size: 13px; line-height: 20px; letter-spacing: 0.03em; }
+
+  /* Pricing – a plan picker. Each card: name, one-line pitch, price; then what every plan has and, under
+     a line, what this one adds. Visualizations – the plan to sell – is picked by default. Clicking a card selects
+     it; the one CTA below books a call for that plan. Clicking a card selects it; the one CTA below books a call for that plan. */
+  .pricing { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .plan { position: relative; grid-row: span 4; display: grid; grid-template-rows: subgrid; row-gap: 0; padding: 48px 40px; border: 1px solid var(--edge); cursor: pointer; transition: border-color 0.3s var(--ease), background 0.3s var(--ease), opacity 0.4s var(--ease); }
+  .plan:hover { border-color: var(--edge-strong); }
+  /* with the details open there's more to read, so the picked plan leads: the others step back,
+     but stay clickable and brighten on hover */
+  .plan:has(input:checked) { border-color: var(--fg); background: #0b0b0b; }
+  .plan:has(input:focus-visible) { outline: 1px solid var(--fg); outline-offset: 3px; }
+  .plan input { position: absolute; opacity: 0; pointer-events: none; }
+  /* spacing does the grouping: tight inside a group (4px name→line, 4px price→terms), wide between
+     groups (32px to the price, 40px to the list, 40px to the extras, 48px to the details) */
+  .plan__head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 40px; }
+  .plan__head .price { margin-top: auto; }
+  .plan__head > .body { margin-bottom: 36px; } /* the space above the price, kept off the price itself so it morphs cleanly */
+  .price__note { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); }
+  .plan__title { font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 1.3; letter-spacing: var(--track-ui); }
+  .price { display: flex; align-items: baseline; gap: 8px; }
+  .price b { font-family: var(--font-display); font-weight: 500; font-size: 36px; line-height: 1; letter-spacing: var(--track-display); }
+  .price span { font: inherit; font-family: var(--font-display); font-weight: 500; font-size: 36px; line-height: 1; letter-spacing: var(--track-display); color: rgba(255, 255, 255, 0.26); }
+  /* "Plan details +" sits at the bottom of every card (cards share one height) and opens that plan's popup */
+  .plan__more { display: flex; justify-content: space-between; align-items: center; width: 100%; align-self: end; padding-top: 64px; color: var(--dim); text-align: left; transition: color 0.2s var(--ease); }
+  .plan__more:hover, .plan__more:focus-visible { color: var(--fg); outline: none; }
+  .plan__more::after { content: '+'; font-size: 18px; line-height: 1; }
+  .plan__group { display: flex; flex-direction: column; gap: 12px; }
+  .plan__label { color: var(--dim); }
+  .feats { max-width: none; display: flex; flex-direction: column; gap: 16px; line-height: 20px; }
+  .feats li { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; color: var(--muted); }
+  /* the core three: no tick – the name on the left, its status on the right of the card, like a spec
+     sheet. Concept is faint small text; ready to present / ship a quiet tag */
+  .feats:not(.feats--extra) { gap: 16px; }
+  .feats:not(.feats--extra) li { grid-template-columns: 1fr auto; gap: 20px; }
+  .feats:not(.feats--extra) li::before { content: none; }
+  .lvl { align-self: center; justify-self: end; font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); text-align: right; white-space: nowrap; }
+  /* three steps of finish, each a small square tag that gets a little brighter:
+     concept – outline only, faint text · ready to present – dark grey fill · ready to ship – lighter fill, white */
+  .lvl { padding: 2px 8px; box-shadow: inset 0 0 0 1px var(--edge); } /* each its own width, all 24px tall, on the right edge */
+  .lvl--present { box-shadow: none; background: #2e2e2e; color: var(--fg); } /* same as ready to ship: both are finished work */
+  .lvl--ship { box-shadow: none; background: #2e2e2e; color: var(--fg); }
+  .feats li::before { content: ''; width: 20px; height: 20px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M4.5 9.5 L7.5 12.5 L13.5 5.5' fill='none' stroke='%23969696' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E") center / contain no-repeat; }
+  /* never mixed: the plain tick is what every plan has; the square tick, under a line, is what this
+     plan adds on top. Cards share one height; the bigger plans simply hold more */
+  /* what a plan adds over the one before, under a small "Also includes" label */
+  .plan__plus { display: flex; flex-direction: column; gap: 12px; margin-top: 40px; }
+  .plan__plus-label { color: var(--dim); }
+  .feats--extra li { color: var(--text); }
+  .feats--extra li::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' fill='%232e2e2e'/%3E%3Cpath d='M4.5 9.5 L7.5 12.5 L13.5 5.5' fill='none' stroke='%23ffffff' stroke-width='1.75' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E"); }
+  /* the note sits on the card's bottom edge, whatever is above it */
+  .pricing__foot { display: flex; justify-content: flex-end; margin-top: 20px; }
+
+  /* Trust: the worry first, as the headline; then one calm box – the answer on the left, three short promises on
+     the right, each a name with its tag, built like the plan rows. No click-through. */
+  .trust { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding: 48px 40px; border: 1px solid var(--edge); }
+  .trust__lead { display: flex; flex-direction: column; gap: 24px; padding-right: 20px; }
+  .trust__lead .body { color: var(--muted); }
+  .trust__rows { grid-column: 2 / 4; display: flex; flex-direction: column; gap: 24px; }
+  .trust__rows li { display: flex; flex-direction: column; gap: 4px; }
+  .trust__row { display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: 15px; line-height: 24px; color: var(--fg); }
+  .trust__rows .body { color: var(--dim); }
+  @media (max-width: 1199px) { .trust { grid-template-columns: 1fr; } .trust__rows { grid-column: 1; } .trust__lead { padding-right: 0; } }
+  @media (max-width: 809px) {
+    .trust { padding: 28px 24px; gap: 32px; margin-inline: calc(8px - var(--gutter)); }
+      .trust__row { flex-direction: column; align-items: flex-start; gap: 4px; } /* phones: the tag under its name */
+  }
+
+  /* Book a call: the plan popup's frame, narrower. Day and time are square chips – outlined, the picked one white;
+     the form fields outlined in the same edge; 16px inputs so phones don't zoom on focus. */
+  @media (min-width: 810px) { #book-call { width: min(560px, calc(100vw - 2 * var(--gutter))); } }
+  .book__meta { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--dim); }
+  .sheet .book__body { display: flex; flex-direction: column; gap: 24px; padding-top: 32px; flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .sheet .book__body::-webkit-scrollbar { display: none; }
+  .book__step { display: flex; flex-direction: column; gap: 24px; }
+  .book__step[hidden], .book__form[hidden], .book__meet[hidden], .book__demo[hidden], .book__error[hidden] { display: none; }
+  .book__group { display: flex; flex-direction: column; gap: 12px; }
+  .book__label { color: var(--dim); }
+  .book__days, .book__slots { display: flex; flex-wrap: wrap; gap: 8px; }
+  .book__chip { min-height: 44px; padding: 0 16px; font-family: var(--font-body); font-size: 15px; color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--edge); transition: background 0.2s var(--ease), color 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+  .book__chip.is-on { background: #fff; color: #000; box-shadow: none; }
+  .book__chip--more { color: var(--dim); }
+  @media (hover: hover) { .book__chip:not(.is-on):hover { color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); } }
+  .book__chip:focus-visible, .book__change:focus-visible { outline: 1px solid var(--fg); outline-offset: 2px; }
+  .book__summary { display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: 15px; line-height: 24px; color: var(--fg); }
+  .book__change { min-height: 44px; font-size: 13px; letter-spacing: 0.03em; color: var(--dim); }
+  .book__form { display: flex; flex-direction: column; gap: 12px; }
+  .book__field { display: flex; flex-direction: column; gap: 8px; }
+  .book__field input, .book__field textarea { width: 100%; padding: 12px 16px; font: inherit; font-size: 16px; line-height: 24px; color: var(--fg);
+    background: transparent; border: 1px solid var(--edge); border-radius: 0; resize: vertical; outline: none; transition: border-color 0.2s var(--ease); }
+  .book__field input:focus, .book__field textarea:focus { border-color: var(--fg); }
+  .book__trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .book__error { padding: 12px 16px; border: 1px solid var(--edge-strong); font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--fg); }
+  .book__submit { width: 100%; }
+  .book__done-text { color: var(--muted); }
+  .book__meet { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+  .book__close { align-self: flex-start; }
+  .book__zone, .book__mail, .book__demo { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); }
+  .book__mail { color: var(--dim); }
+
+  /* Plan popup – wide and short: the name and price on top, then "How it works" and "Terms" side
+     by side, then the plan's limit beside the call to action. Esc, Close or a click outside closes it. */
+  .sheet { width: min(1040px, calc(100vw - 2 * var(--gutter))); max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain; padding: 40px; border: 1px solid var(--edge-strong); background: #0b0b0b; color: var(--fg); }
+  .sheet[open] { display: flex; flex-direction: column; gap: 32px; }
+  .sheet::backdrop { background: rgba(0, 0, 0, 0.9); }
+  .sheet > * { flex-shrink: 0; } /* when the sheet scrolls, nothing gets squashed */
+  .sheet__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .sheet__id { display: flex; flex-direction: column; gap: 4px; } /* the name, its price 4px under it */
+  .sheet__title { font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 1.3; letter-spacing: var(--track-ui); }
+  .sheet__close { color: var(--dim); transition: color 0.2s var(--ease); }
+  .sheet__close:hover, .sheet__close:focus-visible { color: var(--fg); outline: none; }
+
+  .sheet__body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; padding-top: 40px; border-top: 1px solid var(--edge); }
+  .sheet__sec { display: flex; flex-direction: column; gap: 12px; }
+  /* Plan details, all open: four groups under small caps headings – how we work, what you get, cost, your client
+     and files. Each row: the term in white, the plan's answer under it in body grey. Two columns on desktop
+     (the long group left, the three short ones right), stacked on phones. 12 label → list · 16 between rows ·
+     32 between groups. Nothing repeats: the price lives in the header, the interface scope in its row. */
+  .sheet__body--groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; align-content: start; }
+  .sheet__col { display: flex; flex-direction: column; gap: 32px; }
+  .sheet__body--groups .sheet__list li { gap: 4px; }
+  .sheet__term { font-size: 15px; line-height: 24px; color: var(--fg); }
+  .sheet__text { font-size: 15px; line-height: 24px; letter-spacing: var(--track-body); color: var(--dim); max-width: 56ch; } /* answers a step under the white terms */
+  .sheet__body, .sheet__foot { border-top-color: var(--edge-quiet); } /* the lines inside the popup, half as bright */
+  /* every size: a fixed frame – the name and price on top, Book a call at the foot, only the groups scroll */
+  .sheet[open] { overflow: hidden; }
+  .sheet .sheet__body--groups { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  .sheet .sheet__body--groups::-webkit-scrollbar { display: none; }
+  .sheet__label { color: var(--dim); }
+  .sheet__list { display: flex; flex-direction: column; gap: 16px; }
+  .sheet__list li { display: flex; flex-direction: column; gap: 4px; }
+  .sheet__name { font-size: 15px; line-height: 24px; color: var(--text); }
+  .sheet__why { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); }
+  .sheet__foot { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 32px; border-top: 1px solid var(--edge); }
+  .sheet__cta { margin-left: auto; }
+
+  /* Footer */
+  .footer { padding: 80px 0 40px; }
+  .footer__inner { display: flex; flex-direction: column; gap: 40px; }
+  .footer__cta { display: flex; flex-direction: column; align-items: flex-start; gap: 40px; }
+  .footer__row { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+
+  /* The portfolio's breakpoints */
+  @media (max-width: 1199px) {
+    /* tablets: the name above, the 2 × 2 steps under it */
+    .track { grid-template-columns: 1fr; gap: 20px; }
+    .line { grid-column: 1; }
+    .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ways { grid-template-columns: 1fr; }
+    .hero__main { grid-template-columns: 1fr; }
+    .hero__title { grid-column: 1; }
+    .ways__media { grid-column: 1; }
+    .why { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .why__photo { grid-column: 1; }
+    .why__body { grid-column: 2; padding: 48px 40px 48px 0; }
+    .vs { grid-template-columns: 1fr; row-gap: 40px; }
+    .vs__side--them, .vs__side--me { grid-column: 1; }
+    .vs__side--them { padding-right: 0; border-right: 0; }
+    .vs__side--me { padding: 20px 0 0; border-top: 1px solid var(--edge); }
+    .vs__side { grid-row: auto; display: flex; flex-direction: column; }
+    .vs__price { align-self: flex-start; }
+    .pricing { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 809px) {
+    :root { --gutter: 20px; }
+    .section { padding: 64px 0; }
+    .h2 { font-size: 30px; }
+    .nav__links { display: none; }
+    .hero { padding-top: 120px; }
+    .hero__video { margin-top: 40px; aspect-ratio: 4 / 3; }
+    .marquee { margin-top: 40px; }
+    .hero__title br { display: none; } /* phones: let the title flow, no lone word on a line */
+    .hero__title { font-size: 34px; }
+    .marquee__frame { width: 116px; margin-right: 40px; }
+    .grid3, .why, .pricing, .ways { grid-template-columns: 1fr; }
+    .line { grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; row-gap: 40px; }
+    .node { grid-row: auto; grid-template-rows: auto auto; padding-left: 36px; }
+    .node > .node__num { left: 0; right: auto; } /* phones: no gutter to hang into, so the number gets its own 36px */
+    .way__title, .way__num, .plan__title, .sheet__title, .track__head { font-size: 20px; }
+    .h3, .node__title, .node > .node__num { font-size: 17px; }
+    .vs__price { font-size: 28px; }
+    .why__body, .why__photo { grid-column: 1; }
+    .why__photo { aspect-ratio: 4 / 5; width: auto; }
+    .why__body { padding: 32px 24px; }
+    .vs { row-gap: 40px; }
+    .row { grid-template-columns: 1fr; gap: 4px; }
+    .plan { padding: 32px 24px; }
+    .sheet { padding: 32px 24px; }
+    .sheet__body { grid-template-columns: 1fr; gap: 40px; }
+    .sheet__body--groups { gap: 32px; }
+    .sheet__foot { flex-direction: column; align-items: flex-start; }
+    .sheet__cta { margin-left: 0; }
+    .pricing__cta { width: 100%; }
+    .price b, .price span { font-size: 28px; }
+    .lead { font-size: 17px; line-height: 26px; }
+
+    /* Phones – the design system's tight version: big areas (cards almost the full width), little space
+       inside them. Four sizes: 13 notes and labels · 15 text · 20 names and titles · 32 headlines and prices;
+       the rest is weight and opacity (white names, grey text, faint notes). Inside a card everything stacks,
+       no side-by-side columns, on a 4 · 8 · 12 · 20 · 24 rhythm: name→its line, label→its list, between rows,
+       between groups, the card's padding. No divider lines – space separates. */
+    .hero__title, .h2 { font-size: 32px; }
+    .h2 br { display: none; } /* the balanced wrap decides */
+    .price b, .price span, .vs__price { font-size: 32px; }
+    .h3, .node__title { font-size: 20px; line-height: 1.2; color: var(--fg); }
+    .node > .node__num { font-size: 13px; letter-spacing: 0.03em; color: var(--faint); }
+    .plan__more::after { font-size: 15px; }
+    .after-head, .pricing { margin-top: 24px; }
+
+    /* thumb-sized controls */
+    .btn { height: 44px; }
+    .nav { padding: 18px var(--gutter); }
+    .footer__row a { padding: 10px 0; margin: -10px 0; }
+
+    /* Rails: rows that scroll sideways edge to edge, card by card; each card all but the full width, with
+       the next one peeking in at the edge */
+    .rail { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+      margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+    .rail::-webkit-scrollbar { display: none; }
+    .rail > * { scroll-snap-align: start; }
+    .grid3, .line, .pricing { display: grid; grid-template-columns: none; grid-template-rows: none; grid-auto-flow: column;
+      grid-auto-columns: calc(100% - 20px); gap: 12px; }
+    .card__text { gap: 8px; }
+    .node { grid-row: auto; display: flex; flex-direction: column; gap: 8px; padding: 0; }
+    .node > .node__num { position: static; margin-bottom: 4px; } /* the number on top: 12px to the name */
+    .node__text { max-width: none; }
+
+    /* How it works: no lines between the tracks – the name, then its steps */
+    .tracks { gap: 40px; }
+    .track { gap: 12px; padding-top: 0; border-top: 0; }
+
+    /* Services: the tabs are plain names, the picked one white – no underline, no rule */
+    .ways { gap: 16px; }
+    .ways__tabs { gap: 20px; border-bottom: 0; }
+    .ways__tab { border-bottom: 0; margin-bottom: 0; }
+
+    /* Why me: a square portrait; one switch – three hires / one designer – flips the two sides in the same
+       space (both share one grid cell, so the box keeps its height and nothing moves). Each side stacks:
+       the role, then its cost; the total sits at the bottom, in the same spot for both. */
+    .why__photo { aspect-ratio: 1; }
+    .why__body { padding: 24px 0 0; gap: 24px; }
+    /* the switch is the system's own buttons: the picked side primary (white), the other ghost (outline) */
+    .vs__switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .vs { display: grid; grid-template-columns: none; grid-template-rows: none; row-gap: 0; }
+    .vs__side, .vs__side--them, .vs__side--me { grid-area: 1 / 1; display: flex; flex-direction: column; padding: 0; border: 0;
+      opacity: 0; visibility: hidden; transition: opacity 0.2s cubic-bezier(0.5, 0, 0.75, 0), visibility 0s 0.2s; }
+    .vs__side.is-on { opacity: 1; visibility: visible; transition: opacity 0.4s var(--ease) 0.2s, visibility 0s; }
+    .vs__who { display: none; } /* the switch already names the side */
+    .vs__list { gap: 12px; margin-bottom: 24px; }
+    .vs__price { margin-top: auto; }
+    .vs__side--them .vs__list li:not(.is-extra) { flex-direction: column; align-items: flex-start; gap: 4px; color: var(--text); }
+    .vs__side--them .vs__list li:not(.is-extra) > span:last-child { color: var(--dim); }
+    .vs__side--them .vs__list li:not(.is-extra) + .is-extra, .vs__side--me .vs__list li:not(.is-extra) + .is-extra { margin-top: 12px; }
+    /* ticks and dashes kept, just smaller and closer: a 16px mark, 8px to its text */
+    .vs__side--me .vs__list li, .vs__side--them .vs__list li.is-extra { grid-template-columns: 16px 1fr; gap: 8px; }
+    .vs__side--me .vs__list li::before, .vs__side--them .vs__list li.is-extra::before { width: 16px; height: 16px; margin-top: 2px; }
+
+    /* Pricing: each card complete on its own – name, line, price, then its own Book a call, then what's in
+       it (each item over its status), then what it adds, then the details. No picking, no shared button. */
+    .pricing__foot { display: none; }
+    .plan { grid-row: auto; display: flex; flex-direction: column; }
+    .plan__head { margin-bottom: 0; }
+    .plan__head > .body { margin-bottom: 16px; } /* line → price: 20 */
+    .plan__cta { display: flex; width: 100%; margin: 20px 0 24px; }
+    .feats { gap: 12px; }
+    .feats:not(.feats--extra) li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .lvl { align-self: flex-start; }
+    .plan__plus { margin-top: 24px; gap: 8px; }
+    .feats--extra li { grid-template-columns: 16px 1fr; gap: 8px; }
+    .feats--extra li::before { width: 16px; height: 16px; margin-top: 2px; }
+    .plan > span:empty { display: none; }
+    .plan__more { padding-top: 24px; }
+
+    /* hero: the reel before the logos */
+    .hero > .container { display: flex; flex-direction: column; }
+    .hero__video { order: 1; }
+    .marquee { order: 2; }
+
+    /* footer details stacked, no stray dot */
+    .footer__meta { display: flex; flex-direction: column; }
+    .footer__sep { display: none; }
+
+    /* plan details: a sheet from the bottom edge, full width, no rules inside; Close is a full-size target
+       and Book a call stays pinned to the bottom while the rest scrolls */
+    .sheet { width: 100%; max-width: 100%; max-height: 88vh; margin: auto 0 0; border: 0; padding: 24px 24px 0; }
+    .sheet[open] { gap: 24px; }
+    .sheet__body { gap: 24px; padding-top: 0; border-top: 0; }
+    .sheet__sec { gap: 8px; }
+    .sheet__list { gap: 12px; }
+    .sheet__close { padding: 14px 0 14px 20px; margin: -14px 0; }
+    .sheet__foot { gap: 12px; padding: 16px 0 24px; border-top: 0; background: #0b0b0b; margin-top: auto; } /* always on the bottom edge */
+    .sheet__cta { width: 100%; }
+
+    /* The phone frame: 20 from the screen edge and inside every box, 12 between boxes in a row. Inside,
+       text sits close to what it belongs to and groups get clear air:
+         4  a name → its line          8  a label → its list
+         12 between rows · a price → its button          24 between groups
+       Headline → content 32; sections 96 apart. The small cards (problems, steps) pad 16, the big ones 20. */
+    :root { --gutter: 20px; }
+    .section { padding: 96px 0; }
+    .after-head, .pricing { margin-top: 32px; }
+    .grid3, .line, .pricing { grid-auto-columns: calc(100% - 32px); gap: 12px; }
+    .grid3 > .card, .node { padding: 16px; border: 1px solid var(--edge); }
+    .plan { padding: 20px; border: 1px solid var(--edge); }
+    .card__text { gap: 8px; }
+    .node { gap: 8px; }
+    .node > .node__num { margin-bottom: 4px; } /* number → name 12, name → text 8 */
+    .tracks { gap: 48px; }
+    .track { gap: 16px; }
+    .ways { gap: 24px; }
+    .ways__tabs { gap: 20px; }
+    /* Why me: boxed, the portrait flush at the top, 20 inside */
+    .why { border: 1px solid var(--edge); }
+    .why__body { padding: 32px 20px; gap: 32px; }
+    .vs__list { gap: 12px; margin-bottom: 24px; }
+    .vs__side--them .vs__list li:not(.is-extra) + .is-extra, .vs__side--me .vs__list li:not(.is-extra) + .is-extra { margin-top: 12px; }
+    /* plans: name → line 4 · line → price 16 · price → button 16 · button → what's in 24 · rows 12 ·
+       → what it adds 24 · label → list 8 · rows 12 · → details 24 */
+    .plan__head > .body { margin-bottom: 12px; }
+    .plan__cta { margin: 16px 0 24px; }
+    .feats, .feats--extra { gap: 12px; }
+    .plan__plus { margin-top: 24px; gap: 8px; }
+    .plan__more { margin-top: auto; padding-top: 24px; } /* cards share one height; details on the bottom edge */
+    /* plan details sheet: the same frame */
+    /* plan details: a floating card 8px off the screen's edges, centred – it grows out of the point
+       you tapped and shrinks back into it. Roomy inside: 32 top, 24 sides; name → price 4; 32 between
+       sections; label → list 12; items 16 apart (item → its note 4); Book a call pinned to the foot */
+    /* near full screen, the same size for every plan: 8px off each edge plus the notch and home-bar areas, so a
+       thin dimmed strip keeps the page in mind. Header on top, Book a call at the foot, the lists fill the middle
+       and scroll when they don't fit. */
+    .sheet { inset: 0; width: auto; height: auto; max-width: none; max-height: none; padding: 32px 24px 0; border: 0;
+      margin: calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)); }
+    .sheet[open] { gap: 32px; }
+    .sheet__body { gap: 32px; }
+    .sheet__sec { gap: 12px; }
+    .sheet__list { gap: 16px; }
+    .sheet__close { padding: 14px 0 14px 20px; }
+    .sheet__foot { padding: 20px 0 24px; }
+    /* the desktop styles at the phone's sizes: 20 name · 32 price · 13 caps labels and notes · 15 items. No
+       scrollbar; the name and Close stay pinned at the top while the rest scrolls; Book a call pinned at the foot */
+    /* a fixed frame, nothing pinned: the header at the top, Book a call at the foot, only the lists between them
+       scroll (no scrollbar). Safari places pinned elements late while the popup is still growing – here there
+       are none, so the button is in place from the first frame. */
+    .sheet { padding-top: 0; overflow: hidden; }
+    .sheet__head { padding-top: 28px; }
+    .sheet__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+      align-content: start; } /* the lists keep their 32px rhythm at the top; spare room falls above the button */
+    .sheet__body::-webkit-scrollbar { display: none; }
+    .sheet__close { margin-top: -14px; } /* level with the name, a full-size target */
+  }
+  /* above phones: the cards share one CTA under them, and both sides of the comparison show at once */
+  @media (min-width: 810px) { .plan__cta, .vs__switch, .pswipe, .pbar { display: none; } }
+  /* Phones: pricing as a swipe and a bar. Above, the plans' parameters in three open columns – thin lines
+     between them, no boxes – that swipe sideways and always snap one column to the centre; the columns either
+     side stay in view, blurred and dimmed, so another offer is plainly there without dots or arrows. Below,
+     the plan bar – name, price, Book now – outside the columns, pinned to the bottom of the screen while the
+     section is in view. Swiping keeps the button where it is; only the name and price change, the old pair
+     slipping up and out before the new one rises in. */
+  @media (max-width: 809px) {
+    .pricing { display: none; }
+    /* One card: the plans swipe across its top, the price and buttons are its footer – one outline around
+       both, the footer a step lighter. Inside, tight: column 20 in from the card's edge; name → line 4 ·
+       → what's in 16 (item → status 4, items 12) · → what it adds 16 (label → list 8, rows 8);
+       footer 16 padding, name → price 4, → buttons 16, buttons 8 apart. */
+    /* the container itself has no outline – only the plan in view does */
+    .pcard { margin-inline: calc(8px - var(--gutter)); } /* no clipping – the bar inside has to be able to stick */
+    .pswipe { position: relative; /* the columns measure their place from here */ display: grid; grid-auto-flow: column; grid-auto-columns: 100%; align-items: stretch;
+      overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+      gap: 8px; padding: 16px 32px 12px 12px; scroll-padding-inline: 12px; } /* every card's left edge on the headline's (8 + 12 = 20), level with the price box under it; 24px of the next plan peeks in */
+    .pswipe::-webkit-scrollbar { display: none; }
+    /* which plan, of three: small squares under the columns, the one in view white; a tap jumps to it */
+    .pdots { display: flex; justify-content: center; gap: 0; }
+    .pdots button { width: 14px; height: 24px; display: grid; place-items: center; } /* squares 8px apart */
+    .pdots button::before { content: ''; width: 6px; height: 6px; background: #3a3a3a; transition: background 0.3s var(--ease); }
+    .pdots button.is-on::before { background: var(--fg); }
+    /* The plans are cards. Off-centre a card is a plain dark grey shape – no text – peeking in at the side.
+       Swiped to the centre it turns black and its text rolls in, line group by line group (a small rise and
+       fade, 40ms apart); leaving, the text fades out at once and the card settles back to grey. */
+    /* the plan in view is the outlined card; the ones either side are empty cards, their outline only just there */
+    .pcol { scroll-snap-align: start; display: flex; flex-direction: column; padding: 28px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08); background: #070707; transition: border-color 0.4s var(--ease), background-color 0.4s var(--ease); }
+    .pcol.is-on { border-color: rgba(255, 255, 255, 0.12); background: #0b0b0b; } /* the picked-card grey from desktop; a quiet outline */
+    .pcol > * { opacity: 0; transform: translateY(8px); transition: opacity 0.15s cubic-bezier(0.5, 0, 0.75, 0), transform 0.15s cubic-bezier(0.5, 0, 0.75, 0); }
+    .pcol.is-on > * { opacity: 1; transform: none; transition: opacity 0.45s var(--ease) var(--in, 0.15s), transform 0.5s var(--ease) var(--in, 0.15s); }
+    .pcol > :nth-child(2) { --in: 0.19s; }
+    .pcol > :nth-child(3) { --in: 0.23s; }
+    .pcol > :nth-child(4) { --in: 0.27s; }
+    /* text in clear steps – size, weight and brightness all change between levels:
+         plan name 20 · 500 · white   its line 15 · 400 · dim grey
+         Included items 15 · 500 · white, status 13 tag   Also includes 15 · 400 · grey
+         labels 13 · faint
+       spacing: name → line 4 · → Included 24 · label → list 8 · items 12 (item → status 4) ·
+       → Also includes 24 · rows 8 */
+    .pcol__name { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1; letter-spacing: var(--track-display); text-transform: uppercase; } /* the headline style, like the section titles */
+    .pcol__line { margin-top: 4px; color: var(--dim); }
+    .pcol__params { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .pcol__params > .pcol__label { margin-bottom: -4px; } /* label → first item 8 */
+    .pcol__param { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .pcol__item { font-weight: 500; color: var(--fg); }
+    .pcol__label { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); }
+    .pcol__plus { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+    .pcol__plus .feats--extra { gap: 8px; }
+    .pcol__plus .feats--extra li { color: var(--muted); }
+    .pcol__more { width: 100%; margin-top: auto; } /* the card's last line, on its bottom edge */
+    .pcol > :nth-last-child(2) { margin-bottom: 24px; } /* at least 24 above it */
+    .pcol:not(.is-on) > * { pointer-events: none; } /* an empty side card: a tap brings it in, nothing inside fires */
+    .pcol > :nth-child(5) { --in: 0.31s; }
+    /* The bar – the dots, then the price and Book now in one box – sticks to the bottom of the screen while you're
+       anywhere on the card, up or down, and lets go once you've scrolled past it. The box is exactly as wide as
+       the cards and on the same edge: the card's quiet outline down its sides and across its top, the card's
+       grey inside, the button closing its bottom – so it reads as the foot of the card above. Stuck, the card
+       fades out softly over the 80px above it. */
+    .pbar { position: sticky; bottom: -1px; z-index: 5; display: flex; flex-direction: column;
+      padding: 0 32px calc(16px + env(safe-area-inset-bottom)) 12px; background: var(--bg); }
+    .pbar::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 80px; pointer-events: none;
+      background: linear-gradient(to bottom, rgba(3, 3, 3, 0), rgba(3, 3, 3, 0.7)); opacity: 0; transition: opacity 0.3s var(--ease); }
+    .pbar.is-stuck::before { opacity: 1; }
+    .pbar .pdots { padding: 8px 0; }
+    .pbar__box { border: 1px solid rgba(255, 255, 255, 0.12); border-bottom: 0; background: #0b0b0b; }
+    .pbar__plan { padding: 20px 23px 16px; } /* the price level with the card's heading (24 in, less the 1px side) */
+    .pbar__price { display: flex; align-items: baseline; gap: 8px; }
+    .pbar__price b { font-family: var(--font-display); font-weight: 500; font-size: 32px; line-height: 1; letter-spacing: var(--track-display); }
+    .pbar__price span { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1; letter-spacing: var(--track-display); color: rgba(255, 255, 255, 0.26); }
+    .pbar__book { width: calc(100% + 2px); margin: 0 -1px; } /* covers the side lines: the button is the box's bottom edge */
+  }
+  /* touch screens: no hover lift that sticks after a tap */
+  @media (hover: none) {
+    .btn:hover { transform: none; background: #fff; }
+    .btn--ghost:hover { background: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+    .plan:hover { border-color: var(--edge); }
+  }
+  .footer__meta { color: var(--dim); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; }
+    .marquee__track { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="nav__logo link-hover" href="#top">karelfyrbach</a>
+  <nav class="nav__links" aria-label="Main">
+    <a class="label link-hover" href="#experiences">Services</a>
+    <a class="label link-hover" href="#how">How it works</a>
+    <a class="label link-hover" href="#why">Compare</a>
+    <a class="label link-hover" href="#pricing">Pricing</a>
+  </nav>
+  <a class="btn" href="#pricing">See pricing</a>
+</header>
+
+<main id="top">
+  <!-- ─── Hero ─────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero__main">
+        <h1 class="title hero__title">Experience and <br><span class="nowrap">design-driven</span> <br>signage sales.</h1>
+        <div class="hero__side">
+          <p class="body body--muted hero__sub">I help digital signage and AV companies sell their hardware solutions through custom visualizations and custom development of interactive interfaces.</p>
+          <div class="hero__ctas">
+            <a class="btn" href="#pricing">See pricing</a>
+            <a class="btn btn--ghost" href="https://karelfyrbach.cz/book">Book a call</a>
+          </div>
+        </div>
+      </div>
+      <div class="marquee" aria-label="Projects for POS Digital, KIA, Decathlon and Marriott">
+        <div class="marquee__track"><span class="marquee__frame"><img src="/logos/posdigital.svg" alt="POS Digital" style="left:10.80%;top:36.59%;width:78.20%"></span><span class="marquee__frame"><img src="/logos/kia.svg" alt="KIA" style="left:24.60%;top:39.81%;width:50.60%"></span><span class="marquee__frame"><img src="/logos/decathlon.svg" alt="Decathlon" style="left:9.27%;top:39.67%;width:81.54%"></span><span class="marquee__frame"><img src="/logos/marriott.svg" alt="Marriott" style="left:12.40%;top:37.35%;width:75.00%"></span><span class="marquee__frame"><img src="/logos/posdigital.svg" alt="" style="left:10.80%;top:36.59%;width:78.20%"></span><span class="marquee__frame"><img src="/logos/kia.svg" alt="" style="left:24.60%;top:39.81%;width:50.60%"></span><span class="marquee__frame"><img src="/logos/decathlon.svg" alt="" style="left:9.27%;top:39.67%;width:81.54%"></span><span class="marquee__frame"><img src="/logos/marriott.svg" alt="" style="left:12.40%;top:37.35%;width:75.00%"></span><span class="marquee__frame"><img src="/logos/posdigital.svg" alt="" style="left:10.80%;top:36.59%;width:78.20%"></span><span class="marquee__frame"><img src="/logos/kia.svg" alt="" style="left:24.60%;top:39.81%;width:50.60%"></span><span class="marquee__frame"><img src="/logos/decathlon.svg" alt="" style="left:9.27%;top:39.67%;width:81.54%"></span><span class="marquee__frame"><img src="/logos/marriott.svg" alt="" style="left:12.40%;top:37.35%;width:75.00%"></span><span class="marquee__frame"><img src="/logos/posdigital.svg" alt="" style="left:10.80%;top:36.59%;width:78.20%"></span><span class="marquee__frame"><img src="/logos/kia.svg" alt="" style="left:24.60%;top:39.81%;width:50.60%"></span><span class="marquee__frame"><img src="/logos/decathlon.svg" alt="" style="left:9.27%;top:39.67%;width:81.54%"></span><span class="marquee__frame"><img src="/logos/marriott.svg" alt="" style="left:12.40%;top:37.35%;width:75.00%"></span></div>
+      </div>
+      <div class="media hero__video">
+        <video src="/images/DigitalSignagePage/1%202.mp4" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 01 · Common issues ──────────────────────────────────────── -->
+  <section class="section" id="solve">
+    <div class="container">
+      <div class="head">
+        <h2 class="h2">Most signage never reaches its full potential.</h2>
+      </div>
+      <div class="grid3 rail after-head">
+        <article class="card">
+          <div class="card__text">
+            <h3 class="h3">Treated as advertising</h3>
+            <p class="body body--muted">Brands are used to seeing screens as advertising space, not as an interactive extension of their in-store brand experience.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="card__text">
+            <h3 class="h3">Sold as hardware</h3>
+            <p class="body body--muted">Signage firms send catalogues of generic, expensive kiosks and screens, leaving brands to figure out the rest on their own.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="card__text">
+            <h3 class="h3">Interactivity left unused</h3>
+            <p class="body body--muted">Software used to be expensive, and the variety of hardware made it impossible to test and optimize. In recent years, this is no longer true.</p>
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── 02 · The solution ───────────────────────────────────────── -->
+  <section class="section section--rule" id="experiences">
+    <div class="container">
+      <div class="head">
+        <h2 class="h2">Brands pick the partner who does it all.</h2>
+      </div>
+
+      <div class="ways after-head">
+        <div class="ways__tabs rail" role="tablist" aria-label="Services">
+          <button class="ways__tab is-on" type="button" role="tab" aria-selected="true" data-way="0">Visualizations and decks</button>
+          <button class="ways__tab" type="button" role="tab" aria-selected="false" data-way="1">Graphics and motion</button>
+          <button class="ways__tab" type="button" role="tab" aria-selected="false" data-way="2">Interactive interfaces</button>
+        </div>
+        <div class="media ways__media">
+          <video class="is-on" src="/images/DigitalSignagePage/Pilsner.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+          <video src="/images/DigitalSignagePage/celio.mov" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+          <video src="/videos/decathlon-desktop.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+        </div>
+        <ol class="ways__list">
+          <li class="way is-on">
+            <button class="way__btn" type="button" aria-expanded="true" data-way="0"><span class="way__num">01</span><span class="way__title">Visualizations and decks</span></button>
+            <div class="way__body"><div>
+              <div class="way__pitch">
+                <p class="body">Picture a call with your dream client.<br>You see the potential. They don’t.<br>That’s where I come in.</p>
+                <p class="body">You brief me. <span class="nowrap">I design a stunning concept.</span><br>Then package it into a video and a deck.</p>
+                <p class="body">Your solution, their brand.<br>Made clear and visible.</p>
+              </div>
+              <p class="way__note">Since 2022, digital signage company POS Digital ($3–5M a year) has started every project with my concepts.</p>
+            </div></div>
+          </li>
+          <li class="way">
+            <button class="way__btn" type="button" aria-expanded="false" data-way="1"><span class="way__num">02</span><span class="way__title">Graphics and motion</span></button>
+            <div class="way__body"><div>
+              <div class="way__pitch">
+                <p class="body">Your client sees the vision.<br>Now I bake it into the real thing.</p>
+                <p class="body">Static design first – clear copy and visuals are key.<br>Then motion that fully leverages the potential of the screen.<br>They get complete, on-brand videos ready to run.</p>
+                <p class="body">No stretching. No lagging. Pixel perfect.</p>
+              </div>
+              <p class="way__note">I designed for banks, travel agencies, insurance companies and more.</p>
+            </div></div>
+          </li>
+          <li class="way">
+            <button class="way__btn" type="button" aria-expanded="false" data-way="2"><span class="way__num">03</span><span class="way__title">Interactive interfaces</span></button>
+            <div class="way__body"><div>
+              <div class="way__pitch">
+                <p class="body">Hardware looks the same in every store.<br>The interface is what people remember.</p>
+                <p class="body">I meet your client and find their pain points.<br>Then design it, build it, test it and deploy it.</p>
+                <p class="body">They get a touchscreen experience and administration.<br>Web-based. Fast.<br>Then you scale it to more devices.</p>
+              </div>
+              <p class="way__note">With POS Digital, I designed and built kiosk interfaces for KIA, Decathlon and Marriott, and like that helped sell dozens of devices.</p>
+            </div></div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 03 · How I work ─────────────────────────────────────────── -->
+  <section class="section section--rule" id="how">
+    <div class="container">
+      <div class="head">
+        <h2 class="h2">You send a brief. <br>I handle the rest.</h2>
+      </div>
+      <div class="tracks after-head">
+        <div class="track">
+          <h3 class="track__head"><span class="track__name">Visualizations</span></h3>
+          <ol class="line rail">
+            <li class="node"><span class="node__num">01</span><h4 class="node__title">Kickoff</h4><p class="body node__text">We set the goals, the screen formats and the creative direction.</p></li>
+            <li class="node"><span class="node__num">02</span><h4 class="node__title">Asset gathering</h4><p class="body node__text">I collect store photos, hardware specs and brand files.</p></li>
+            <li class="node"><span class="node__num">03</span><h4 class="node__title">Design review</h4><p class="body node__text">All in an online collaborative project (Figma). You drop comments, I update the work.</p></li>
+            <li class="node"><span class="node__num">04</span><h4 class="node__title">Final handoff</h4><p class="body node__text">You get the finished deck and render files, ready to present.</p></li>
+          </ol>
+        </div>
+        <div class="track">
+          <h3 class="track__head"><span class="track__name">Content &amp; interfaces</span></h3>
+          <ol class="line rail">
+            <li class="node"><span class="node__num">01</span><h4 class="node__title">Initial scope</h4><p class="body node__text">Quick kickoff with your team to define tech limits and goals.</p></li>
+            <li class="node"><span class="node__num">02</span><h4 class="node__title">Client management</h4><p class="body node__text">I run the calls with your clients directly – that’s where the efficiency lies.</p></li>
+            <li class="node"><span class="node__num">03</span><h4 class="node__title">Design revisions</h4><p class="body node__text">I polish the UI with feedback from the client and tech team.</p></li>
+            <li class="node"><span class="node__num">04</span><h4 class="node__title">Hardware launch</h4><p class="body node__text">Together, we test the solution on real hardware to ensure smooth deployment.</p></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 04 · Why me – one person instead of three ────────────────── -->
+  <section class="section section--rule" id="why">
+    <div class="container">
+      <div class="why">
+      <div class="media why__photo"><img src="/images/Profilovka/pp.webp" alt="Karel Fyrbach"></div>
+      <div class="why__body">
+        <div class="head">
+          <h2 class="h2">One designer <br>instead of three hires.</h2>
+        </div>
+        <div class="vs__switch" role="tablist" aria-label="Compare">
+            <button type="button" role="tab" class="btn is-on" aria-selected="true" data-vs="them">Three hires</button>
+            <button type="button" role="tab" class="btn btn--ghost" aria-selected="false" data-vs="me">One designer</button>
+          </div>
+          <div class="vs">
+          <div class="vs__side vs__side--them is-on">
+            <p class="label vs__who">Hiring in-house</p>
+            <ul class="vs__list body">
+              <li><span>UX/UI, visual and motion designer</span><span>$8,000+</span></li>
+              <li><span>Web developer</span><span>$8,000+</span></li>
+              <li><span>Digital signage professional</span><span>$8,000+</span></li>
+              <li class="is-extra">Three hiring processes</li>
+              <li class="is-extra">Three styles to keep consistent</li>
+              <li class="is-extra">Handoffs between every role</li>
+            </ul>
+            <p class="vs__price">~$24,000<span> / month</span></p>
+          </div>
+          <div class="vs__side vs__side--me">
+            <p class="label vs__who">With me</p>
+            <ul class="vs__list body">
+              <li>5 years designing digital signage</li>
+              <li>Concepts behind ~$5M in yearly sales</li>
+              <li>Designed for KIA, Decathlon, Marriott and more</li>
+              <li class="is-extra">Hire once</li>
+              <li class="is-extra">Consistency from concept to final result</li>
+              <li class="is-extra">Zero misunderstanding between roles</li>
+            </ul>
+            <p class="vs__price">from $5,750<span> / month</span></p>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 05 · Trust – the question every partner has, answered before the prices ───────────────── -->
+  <section class="section section--rule" id="trust">
+    <div class="container">
+      <div class="head">
+        <h2 class="h2">Your vision stays yours, in every tender and every market.</h2>
+      </div>
+      <div class="trust after-head">
+        <div class="trust__lead">
+          <p class="body">You may wonder who else I work with. It’s a fair question, so here is exactly how I handle it.</p>
+        </div>
+        <ul class="trust__rows">
+          <li><div class="trust__row"><span>Your ideas</span><span class="lvl lvl--ship">Protected</span></div>
+            <p class="body">Your concepts, designs and ideas stay yours. I never reuse them for anyone else.</p></li>
+          <li><div class="trust__row"><span>Your tender</span><span class="lvl lvl--ship">Discreet</span></div>
+            <p class="body">That a tender is happening, or that someone is asking about a solution, stays between us.</p></li>
+          <li><div class="trust__row"><span>Your competitors</span><span class="lvl lvl--ship">One bidder</span></div>
+            <p class="body">I don’t work with your direct competitors, and in a tender I work for one bidder only.</p></li>
+          <li><div class="trust__row"><span>NDA</span><span class="lvl lvl--ship">When it serves us both</span></div>
+            <p class="body">I’m happy to sign one whenever it protects our shared interests.</p></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 06 · Pricing ────────────────────────────────────────────── -->
+  <section class="section section--rule" id="pricing">
+    <div class="container">
+      <div class="head">
+        <h2 class="h2 h2--line">Fixed prices, once or monthly.</h2>
+      </div>
+
+      <div class="pricing rail">
+        <label class="plan" data-title="Impress, one time">
+          <input type="radio" name="plan" value="concept">
+          <div class="plan__head">
+            <h3 class="plan__title">Impress, one time</h3>
+            <p class="body body--muted">One visualization to win over your client.</p>
+            <p class="price"><b>$1,250</b><span>once</span></p>
+          </div>
+          <a class="btn plan__cta" href="https://karelfyrbach.cz/book">Book a call</a>
+          <ul class="feats body">
+            <li><span>Visualization and deck</span><span class="lvl lvl--present">Ready to present</span></li>
+            <li><span>Graphics and motion</span><span class="lvl">Concept</span></li>
+            <li><span>Interactive interface</span><span class="lvl">Concept</span></li>
+          </ul>
+          <span></span>
+          <button class="plan__more label" type="button" data-dialog="details-concept">Plan details</button>
+        </label>
+        <label class="plan" data-title="Design covered">
+          <input type="radio" name="plan" value="viz" checked>
+          <div class="plan__head">
+            <h3 class="plan__title">Design covered</h3>
+            <p class="body body--muted">Your own senior designer.</p>
+            <p class="price"><b>$5,750</b><span>/ month</span></p>
+          </div>
+          <a class="btn plan__cta" href="https://karelfyrbach.cz/book">Book a call</a>
+          <ul class="feats body">
+            <li><span>Visualizations and decks</span><span class="lvl lvl--present">Ready to present</span></li>
+            <li><span>Graphics and motion</span><span class="lvl lvl--ship">Ready to ship</span></li>
+            <li><span>Interactive interfaces</span><span class="lvl">Concepts</span></li>
+          </ul>
+          <div class="plan__plus">
+            <p class="label plan__plus-label">Extras</p>
+            <ul class="feats feats--extra body">
+              <li>Brand design and motion for you and your clients</li>
+              <li>Sales decks and materials for your team</li>
+              <li>One active request at a time</li>
+            </ul>
+          </div>
+          <button class="plan__more label" type="button" data-dialog="details-viz">Plan details</button>
+        </label>
+        <label class="plan" data-title="Complete product care">
+          <input type="radio" name="plan" value="full">
+          <div class="plan__head">
+            <h3 class="plan__title">Complete product care</h3>
+            <p class="body body--muted">From concept to working solution.</p>
+            <p class="price"><b>$11,900</b><span>/ month</span></p>
+          </div>
+          <a class="btn plan__cta" href="https://karelfyrbach.cz/book">Book a call</a>
+          <ul class="feats body">
+            <li><span>Visualizations and decks</span><span class="lvl lvl--present">Ready to present</span></li>
+            <li><span>Graphics and motion</span><span class="lvl lvl--ship">Ready to ship</span></li>
+            <li><span>Interactive interfaces</span><span class="lvl lvl--ship">Ready to ship</span></li>
+          </ul>
+          <div class="plan__plus">
+            <p class="label plan__plus-label">Extras, on top of Design covered</p>
+            <ul class="feats feats--extra body">
+              <li>Interfaces designed and built end to end</li>
+              <li>Your client’s project managed under your name</li>
+              <li>Two active requests at once</li>
+            </ul>
+          </div>
+          <button class="plan__more label" type="button" data-dialog="details-full">Plan details</button>
+        </label>
+      </div>
+      <!-- phones: swipe through the plans' parameters; the plan bar under them names the plan in view -->
+      <div class="pcard after-head">
+      <div class="pswipe" aria-label="Plans – swipe to compare">
+        <section class="pcol" data-name="Impress, one time" data-price="$1,250" data-per="once" aria-label="Impress, one time" data-dialog="details-concept">
+          <h3 class="plan__title pcol__name">Impress, one time</h3>
+          <p class="body body--muted pcol__line">One visualization to win over your client.</p>
+          <div class="pcol__params"><p class="pcol__label">Included</p>
+            <div class="pcol__param"><p class="body pcol__item">Visualization and deck</p><span class="lvl lvl--present">Ready to present</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Graphics and motion</p><span class="lvl">Concept</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Interactive interface</p><span class="lvl">Concept</span></div>
+          </div>
+          <button class="btn btn--ghost pcol__more" type="button" data-dialog="details-concept">Plan details</button>
+        </section>
+        <section class="pcol" data-name="Design covered" data-price="$5,750" data-per="/ month" aria-label="Design covered" data-dialog="details-viz">
+          <h3 class="plan__title pcol__name">Design covered</h3>
+          <p class="body body--muted pcol__line">Your own senior designer.</p>
+          <div class="pcol__params"><p class="pcol__label">Included</p>
+            <div class="pcol__param"><p class="body pcol__item">Visualizations and decks</p><span class="lvl lvl--present">Ready to present</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Graphics and motion</p><span class="lvl lvl--ship">Ready to ship</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Interactive interfaces</p><span class="lvl">Concepts</span></div>
+          </div>
+          <div class="pcol__plus"><p class="pcol__label">Extras</p><ul class="feats feats--extra body"><li>Brand design and motion for you and your clients</li><li>Sales decks and materials for your team</li><li>One active request at a time</li></ul></div>
+          <button class="btn btn--ghost pcol__more" type="button" data-dialog="details-viz">Plan details</button>
+        </section>
+        <section class="pcol" data-name="Complete product care" data-price="$11,900" data-per="/ month" aria-label="Complete product care" data-dialog="details-full">
+          <h3 class="plan__title pcol__name">Complete product care</h3>
+          <p class="body body--muted pcol__line">From concept to working solution.</p>
+          <div class="pcol__params"><p class="pcol__label">Included</p>
+            <div class="pcol__param"><p class="body pcol__item">Visualizations and decks</p><span class="lvl lvl--present">Ready to present</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Graphics and motion</p><span class="lvl lvl--ship">Ready to ship</span></div>
+            <div class="pcol__param"><p class="body pcol__item">Interactive interfaces</p><span class="lvl lvl--ship">Ready to ship</span></div>
+          </div>
+          <div class="pcol__plus"><p class="pcol__label">Extras, on top of Design covered</p><ul class="feats feats--extra body"><li>Interfaces designed and built end to end</li><li>Your client’s project managed under your name</li><li>Two active requests at once</li></ul></div>
+          <button class="btn btn--ghost pcol__more" type="button" data-dialog="details-full">Plan details</button>
+        </section>
+      </div>
+      <div class="pbar" aria-live="polite">
+        <div class="pdots" aria-label="Plans">
+          <button type="button" class="is-on" aria-label="Impress, one time"></button>
+          <button type="button" aria-label="Design covered"></button>
+          <button type="button" aria-label="Complete product care"></button>
+        </div>
+        <div class="pbar__box">
+          <div class="pbar__plan">
+            <p class="pbar__price"><b>$1,250</b><span>once</span></p>
+          </div>
+          <a class="btn pbar__book" href="https://karelfyrbach.cz/book">Book now</a>
+        </div>
+      </div>
+      </div>
+      <div class="pricing__foot">
+        <a class="btn pricing__cta" href="https://karelfyrbach.cz/book"><span>Book a call · <span class="pricing__picked">Design covered</span></span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+  <dialog class="sheet" id="details-concept" aria-labelledby="details-concept-title">
+    <header class="sheet__head">
+      <div class="sheet__id">
+        <h3 class="sheet__title" id="details-concept-title">Impress, one time</h3>
+        <div class="sheet__price"><p class="price"><b>$1,250</b><span>once</span></p></div>
+      </div>
+      <button class="sheet__close label" type="button" aria-label="Close">Close</button>
+    </header>
+    <div class="sheet__body sheet__body--groups">
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">How it works</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Start</p><p class="sheet__text">A 1-hour kickoff call. We go through your client, their spaces and your solutions (available hardware).</p></li><li><p class="sheet__term">Requests</p><p class="sheet__text">One concept, built for one client pitch. Delivered as a video and a presentation deck, in your client’s branding and spaces.</p></li><li><p class="sheet__term">Speed</p><p class="sheet__text">Delivered within 72 hours, counted from the end of the kickoff call.</p></li><li><p class="sheet__term">Revisions</p><p class="sheet__text">Two rounds included.</p></li><li><p class="sheet__term">Communication</p><p class="sheet__text">Email and call.</p></li><li><p class="sheet__term">Client calls</p><p class="sheet__text">You present the concept. I stay in the background.</p></li></ul>
+        </section>
+      </div>
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">Terms</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Billing</p><p class="sheet__text">You pay upfront. Then we start.</p></li><li><p class="sheet__term">Credit</p><p class="sheet__text">The full $1,250 comes off your first month if you start a monthly plan within 30 days.</p></li><li><p class="sheet__term">Hosting</p><p class="sheet__text">Not included.</p></li><li><p class="sheet__term">Ownership</p><p class="sheet__text">You own all files once paid. I only show the work with your permission, or anonymized.</p></li><li><p class="sheet__term">Confidentiality</p><p class="sheet__text">Your concepts, ideas and tenders stay protected. I sign an NDA when it serves us both. I don’t work with your direct competitors, and in a tender I work for one bidder only.</p></li></ul>
+        </section>
+      </div>
+    </div>
+    <footer class="sheet__foot">
+      <a class="btn sheet__cta" href="https://karelfyrbach.cz/book"><span>Book a call</span></a>
+    </footer>
+  </dialog>
+  <dialog class="sheet" id="details-viz" aria-labelledby="details-viz-title">
+    <header class="sheet__head">
+      <div class="sheet__id">
+        <h3 class="sheet__title" id="details-viz-title">Design covered</h3>
+        <div class="sheet__price"><p class="price"><b>$5,750</b><span>/ month</span></p></div>
+      </div>
+      <button class="sheet__close label" type="button" aria-label="Close">Close</button>
+    </header>
+    <div class="sheet__body sheet__body--groups">
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">How it works</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Start</p><p class="sheet__text">We kick off with a call.</p></li><li><p class="sheet__term">Requests</p><p class="sheet__text">Unlimited. Add as many as you like – I work on one at a time, in order.</p></li><li><p class="sheet__term">Speed</p><p class="sheet__text">An update every 1–3 business days, with async online video walkthroughs and previews. Larger projects are broken into clear milestones.</p></li><li><p class="sheet__term">Revisions</p><p class="sheet__text">Unlimited. Changes go in as new requests.</p></li><li><p class="sheet__term">Communication</p><p class="sheet__text">Slack, with a reply within 2 hours. One call a week with you.</p></li><li><p class="sheet__term">Client calls</p><p class="sheet__text">Your client hears only from you. I work through you.</p></li></ul>
+        </section>
+      </div>
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">Terms</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Billing</p><p class="sheet__text">Billed at the start of each month. Month to month – pause or cancel anytime.</p></li><li><p class="sheet__term">Credit</p><p class="sheet__text">Your Impress plan is credited to your first month if you start within 30 days of it.</p></li><li><p class="sheet__term">Hosting</p><p class="sheet__text">Not included.</p></li><li><p class="sheet__term">Ownership</p><p class="sheet__text">You own all files once paid. I only show the work with your permission, or anonymized.</p></li><li><p class="sheet__term">Confidentiality</p><p class="sheet__text">Your concepts, ideas and tenders stay protected. I sign an NDA when it serves us both. I don’t work with your direct competitors, and in a tender I work for one bidder only.</p></li></ul>
+        </section>
+      </div>
+    </div>
+    <footer class="sheet__foot">
+      <a class="btn sheet__cta" href="https://karelfyrbach.cz/book"><span>Book a call</span></a>
+    </footer>
+  </dialog>
+  <dialog class="sheet" id="details-full" aria-labelledby="details-full-title">
+    <header class="sheet__head">
+      <div class="sheet__id">
+        <h3 class="sheet__title" id="details-full-title">Complete product care</h3>
+        <div class="sheet__price"><p class="price"><b>$11,900</b><span>/ month</span></p></div>
+      </div>
+      <button class="sheet__close label" type="button" aria-label="Close">Close</button>
+    </header>
+    <div class="sheet__body sheet__body--groups">
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">How it works</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Start</p><p class="sheet__text">We kick off with a call.</p></li><li><p class="sheet__term">Requests</p><p class="sheet__text">Two at once, with an unlimited queue behind them.</p></li><li><p class="sheet__term">Speed</p><p class="sheet__text">An update every 24–48 hours, with async online video walkthroughs and previews. Larger projects are broken into clear milestones.</p></li><li><p class="sheet__term">Revisions</p><p class="sheet__text">Unlimited.</p></li><li><p class="sheet__term">Communication</p><p class="sheet__text">Slack, with a reply within 2 hours. Two calls a week.</p></li><li><p class="sheet__term">Client calls</p><p class="sheet__text">I join your client’s calls and run the project under your name.</p></li></ul>
+        </section>
+      </div>
+      <div class="sheet__col">
+        <section class="sheet__sec">
+          <p class="label sheet__label">Terms</p>
+          <ul class="sheet__list"><li><p class="sheet__term">Billing</p><p class="sheet__text">Billed at the start of each month. Month to month – pause or cancel anytime.</p></li><li><p class="sheet__term">Credit</p><p class="sheet__text">Your Impress plan is credited to your first month if you start within 30 days of it.</p></li><li><p class="sheet__term">Hosting</p><p class="sheet__text">Available as an add-on, quoted per project. Otherwise the interface is handed over at launch.</p></li><li><p class="sheet__term">Ownership</p><p class="sheet__text">You own all files once paid. I only show the work with your permission, or anonymized.</p></li><li><p class="sheet__term">Confidentiality</p><p class="sheet__text">Your concepts, ideas and tenders stay protected. I sign an NDA when it serves us both. I don’t work with your direct competitors, and in a tender I work for one bidder only.</p></li></ul>
+        </section>
+      </div>
+    </div>
+    <footer class="sheet__foot">
+      <a class="btn sheet__cta" href="https://karelfyrbach.cz/book"><span>Book a call</span></a>
+    </footer>
+  </dialog>
+
+  <!-- Book a call: opens on this page – a day, a time, two details, done -->
+  <dialog class="sheet" id="book-call" aria-labelledby="book-title">
+    <header class="sheet__head">
+      <div class="sheet__id">
+        <h3 class="sheet__title" id="book-title">Book a call</h3>
+        <p class="book__meta">20 minutes · Google Meet</p>
+      </div>
+      <button class="sheet__close label" type="button" aria-label="Close">Close</button>
+    </header>
+    <div class="sheet__body book__body">
+      <div class="book__step" data-step="pick">
+        <p class="body book__loading">Loading free times…</p>
+        <div class="book__group"><p class="label book__label">Pick a day</p><div class="book__days"></div></div>
+        <div class="book__group"><p class="label book__label">Pick a time</p><div class="book__slots"></div></div>
+        <form class="book__form" hidden novalidate>
+          <label class="book__field"><span class="label book__label">Your email</span><input name="email" type="email" autocomplete="email" required></label>
+          <input class="book__trap" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p class="book__error" role="alert" hidden></p>
+          <button class="btn book__submit" type="submit">Book</button>
+        </form>
+      </div>
+      <div class="book__step" data-step="done" hidden>
+        <p class="plan__title">You’re booked.</p>
+        <p class="body book__done-text"></p>
+        <a class="body book__meet" href="#" target="_blank" rel="noopener" hidden>Open the Google Meet link</a>
+        <p class="note book__demo" hidden>Demo mode – nothing was added to a calendar.</p>
+        <button class="btn btn--ghost book__close" type="button">Done</button>
+      </div>
+    </div>
+    <footer class="sheet__foot book__foot">
+      <p class="note book__zone"></p>
+      <a class="note book__mail" href="mailto:karelfyrbach@gmail.com">karelfyrbach@gmail.com</a>
+    </footer>
+  </dialog>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__cta">
+      <h2 class="h2">Have a client in mind? Let’s win them together.</h2>
+      <a class="btn" href="https://karelfyrbach.cz/book">Book a call</a>
+    </div>
+    <div class="footer__row">
+      <a class="body link-hover" href="mailto:karelfyrbach@gmail.com">karelfyrbach@gmail.com</a>
+      <p class="body footer__meta"><span>Karel Fyrbach · IČO 14326876</span><span class="footer__sep"> · </span><span>karelfyrbach.cz</span></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Three ways: a heading opens its text and switches the video
+  const ways = document.querySelectorAll('.way__btn')
+  const wayVideos = document.querySelectorAll('.ways__media video')
+  // desktop: the open text's height is the list's fixed height minus the three titles and their two lines
+  const wayList = document.querySelector('.ways__list')
+  const sizeWays = () => wayList.style.setProperty('--way-open',
+    wayList.clientHeight - [...ways].reduce((h, b) => h + b.getBoundingClientRect().height, 0) - 2 + 'px')
+  new ResizeObserver(sizeWays).observe(wayList)
+  // the titles (desktop) and the tab row (below desktop) both switch
+  const wayTabs = document.querySelectorAll('.ways__tab')
+  document.querySelectorAll('[data-way]').forEach((btn) => btn.addEventListener('click', () => {
+    const n = +btn.dataset.way
+    ways.forEach((b, i) => { b.parentElement.classList.toggle('is-on', i === n); b.setAttribute('aria-expanded', i === n) })
+    wayTabs.forEach((t, i) => { t.classList.toggle('is-on', i === n); t.setAttribute('aria-selected', i === n) })
+    wayVideos.forEach((v, i) => {
+      const on = i === n
+      v.classList.toggle('is-on', on)
+      if (on) { v.currentTime = 0; v.play().catch(() => {}) } else setTimeout(() => !v.classList.contains('is-on') && v.pause(), 600)
+    })
+  }))
+
+  // Pricing: "Plan details +" opens that plan's popup. It grows out of the exact point you clicked –
+  // scaling up from it, coming into focus from a blur – while the page dims; closing shrinks it back into
+  // that same point, blurring and fading, a little quicker. Reduced motion: it simply appears and goes.
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)', EASE_IN = 'cubic-bezier(0.5, 0, 0.75, 0)'
+  const away = { opacity: 0, transform: 'scale(0.6)', filter: 'blur(12px)' }
+  const awayPhone = { opacity: 0, transform: 'scale(0.6)', filter: 'none' } // phones: no blur – a big blurred layer stutters on a phone
+  const phoneSheet = matchMedia('(max-width: 809px)')
+  const here = { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)' }
+  // While a popup is open the page underneath can't move – not even iOS's rubber-band. The reliable way: pin the
+  // body where it is (position: fixed, shifted up by the scroll), then put it back exactly there on close.
+  // The scrollbar's width is padded back in on desktop, so nothing shifts sideways.
+  let lockedAt = null
+  const lockPage = () => {
+    if (lockedAt !== null) return
+    lockedAt = scrollY
+    const bar = innerWidth - document.documentElement.clientWidth
+    Object.assign(document.body.style, { position: 'fixed', top: `-${lockedAt}px`, left: '0', right: '0', paddingRight: bar ? `${bar}px` : '' })
+  }
+  const unlockPage = () => {
+    if (lockedAt === null) return
+    Object.assign(document.body.style, { position: '', top: '', left: '', right: '', paddingRight: '' })
+    document.documentElement.style.scrollBehavior = 'auto' // straight back, no smooth glide
+    scrollTo(0, lockedAt)
+    document.documentElement.style.scrollBehavior = ''
+    lockedAt = null
+  }
+  const openSheet = (d, x, y) => {
+    lockPage()
+    d.showModal()
+    if (calm) return
+    const r = d.getBoundingClientRect() // the click, in the sheet's own coordinates, is where it grows from
+    d.style.transformOrigin = `${Math.round(x - r.left)}px ${Math.round(y - r.top)}px`
+    d.animate([phoneSheet.matches ? awayPhone : away, here], { duration: 520, easing: EASE_OUT })
+    d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: EASE_OUT, pseudoElement: '::backdrop' })
+  }
+  const closeSheet = (d) => {
+    if (calm || d.closing) return d.close()
+    d.closing = true
+    const o = { duration: 300, easing: EASE_IN, fill: 'forwards' }
+    d.animate([{ opacity: 1 }, { opacity: 0 }], { ...o, pseudoElement: '::backdrop' })
+    d.animate([here, phoneSheet.matches ? awayPhone : away], o)
+      .finished.then(() => { d.close(); d.getAnimations({ subtree: true }).forEach((a) => a.cancel()); d.closing = false })
+  }
+  document.querySelectorAll('.plan__more').forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault() // inside the card's label – don't select the card
+    const r = b.getBoundingClientRect() // the pointer – or, from the keyboard, the button's centre
+    const x = e.detail ? e.clientX : r.left + r.width / 2, y = e.detail ? e.clientY : r.top + r.height / 2
+    openSheet(document.getElementById(b.dataset.dialog), x, y)
+  }))
+  document.querySelectorAll('.sheet').forEach((d) => {
+    d.querySelector('.sheet__close').addEventListener('click', () => closeSheet(d))
+    d.addEventListener('click', (e) => { if (e.target === d) closeSheet(d) })
+    d.addEventListener('cancel', (e) => { e.preventDefault(); closeSheet(d) }) // Esc closes the same way
+    d.addEventListener('close', () => { if (!document.querySelector('dialog[open]')) unlockPage() }) // released where it was, once no popup is left
+  })
+
+  // Book a call: every "Book a call" / "Book now" opens this popup on the page – no other site. It asks the
+  // site's own booking server for free times, shows them in the visitor's time zone and books the one picked.
+  const bk = document.getElementById('book-call')
+  {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    const q = (sel) => bk.querySelector(sel)
+    const steps = { pick: q('[data-step=pick]'), done: q('[data-step=done]') }
+    const form = q('.book__form'), err = q('.book__error'), submit = q('.book__submit'), loading = q('.book__loading')
+    const fmt = (o) => new Intl.DateTimeFormat(undefined, { timeZone: tz, ...o })
+    const keyOf = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d)
+    const dayLabel = (d) => fmt({ weekday: 'short', day: 'numeric', month: 'short' }).format(d)
+    const timeLabel = (d) => fmt({ hour: 'numeric', minute: '2-digit' }).format(d)
+    let plan = '', when = '', byDay = new Map(), day = null, slot = null, minutes = 20, demo = false, loadedAt = 0, showAll = false
+    q('.book__zone').textContent = `Times in your time zone (${tz.replace(/_/g, ' ')}).`
+
+    const go = (name) => {
+      Object.entries(steps).forEach(([k, el]) => (el.hidden = k !== name))
+      q('.book__body').scrollTop = 0
+    }
+    const renderDays = () => {
+      const keys = [...byDay.keys()].sort(), shown = showAll ? keys : keys.slice(0, 14)
+      q('.book__days').innerHTML = shown.map((k) =>
+        `<button type="button" class="book__chip${k === day ? ' is-on' : ''}" data-day="${k}">${dayLabel(new Date(byDay.get(k)[0]))}</button>`).join('') +
+        (keys.length > shown.length ? '<button type="button" class="book__chip book__chip--more" data-more>More days</button>' : '')
+      q('.book__slots').innerHTML = (byDay.get(day) || []).map((s) =>
+        `<button type="button" class="book__chip${s === slot ? ' is-on' : ''}" data-slot="${s}">${timeLabel(new Date(s))}</button>`).join('')
+      form.hidden = !slot || !(byDay.get(day) || []).includes(slot)
+    }
+    const load = async () => {
+      if (Date.now() - loadedAt < 60_000 && byDay.size) return renderDays()
+      loading.hidden = false; loading.textContent = 'Loading free times…'
+      try {
+        const res = await fetch('/api/availability'), data = await res.json()
+        if (!res.ok) throw new Error()
+        minutes = data.minutes || 20; demo = !!data.demo; loadedAt = Date.now(); byDay = new Map()
+        for (const s of data.slots || []) { const k = keyOf(new Date(s)); byDay.set(k, [...(byDay.get(k) || []), s]) }
+        if (!byDay.has(day)) day = [...byDay.keys()].sort()[0] || null
+        loading.hidden = !!byDay.size
+        if (!byDay.size) loading.textContent = 'No free times right now – email me instead.'
+        renderDays()
+      } catch {
+        loading.textContent = 'The calendar didn’t load. Try again in a moment, or email me.'
+      }
+    }
+
+    steps.pick.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return
+      if (b.dataset.more !== undefined) { showAll = true; return renderDays() }
+      if (b.dataset.day) { day = b.dataset.day; return renderDays() }
+      if (b.dataset.slot) {
+        slot = b.dataset.slot
+        const start = new Date(slot), end = new Date(start.getTime() + minutes * 60_000)
+        when = `${dayLabel(start)} · ${timeLabel(start)}–${timeLabel(end)}`
+        err.hidden = true; renderDays(); form.elements.email.focus({ preventScroll: true })
+        form.scrollIntoView({ block: 'nearest' })
+      }
+    })
+    q('.book__close').addEventListener('click', () => closeSheet(bk))
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const f = form.elements, email = f.email.value.trim()
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Check your email address.'; err.hidden = false; return f.email.focus() }
+      submit.disabled = true; submit.textContent = 'Booking…'; err.hidden = true
+      try {
+        const res = await fetch('/api/book', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ start: slot, name: '', email, notes: plan ? `Interested in ${plan}.` : '', timeZone: tz, website: f.website.value }) })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          err.textContent = data.error || 'Something went wrong – try again.'; err.hidden = false
+          if (res.status === 409) { loadedAt = 0; await load() } // that time is gone: fresh times behind the message
+          return
+        }
+        q('.book__done-text').textContent = `${when}. The calendar invite and Google Meet link are on their way to ${email}.`
+        const meet = q('.book__meet'); meet.hidden = !data.meetLink; if (data.meetLink) meet.href = data.meetLink
+        q('.book__demo').hidden = !demo
+        loadedAt = 0; slot = null; go('done')
+      } catch {
+        err.textContent = 'No connection – check your internet and try again.'; err.hidden = false
+      } finally { submit.disabled = false; submit.textContent = 'Book' }
+    })
+
+    // which plan the button belongs to, so the note can say it
+    const planOf = (a) =>
+      a.classList.contains('pricing__cta') ? document.querySelector('.pricing__picked')?.textContent
+      : a.classList.contains('pbar__book') ? document.querySelector('.pcol.is-on')?.dataset.name
+      : a.classList.contains('sheet__cta') ? a.closest('dialog')?.querySelector('.sheet__title')?.textContent
+      : a.closest('.plan')?.dataset.title
+    document.querySelectorAll('a[href$="/book"]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault()
+      const r = a.getBoundingClientRect(); plan = planOf(a) || ''
+      form.reset(); slot = null; err.hidden = true
+      showAll = false; go('pick'); load()
+      openSheet(bk, e.detail ? e.clientX : r.left + r.width / 2, e.detail ? e.clientY : r.top + r.height / 2)
+    }))
+  }
+
+  // Pricing: the one CTA follows the picked plan
+  document.querySelectorAll('.plan input').forEach((r) => r.addEventListener('change', () => {
+    document.querySelector('.pricing__picked').textContent = r.closest('.plan').dataset.title
+  }))
+  // Phones: every card has its own Book a call, so a tap on a card picks nothing – the page stays still
+  const phone = matchMedia('(max-width: 809px)')
+  document.querySelectorAll('.plan').forEach((p) => p.addEventListener('click', (e) => {
+    if (phone.matches && !e.target.closest('a, button')) e.preventDefault()
+  }))
+
+  // Phones – pricing: whichever column sits in the centre is the plan in view; the bar follows it. The old
+  // name and price slip up and out (ease-in), then the new pair rises in (ease-out) – never a cross-dissolve.
+  const swipe = document.querySelector('.pswipe'), cols = [...document.querySelectorAll('.pcol')]
+  const barPlan = document.querySelector('.pbar__plan')
+  const barPrice = document.querySelector('.pbar__price'), barBook = document.querySelector('.pbar__book')
+  const dots = [...document.querySelectorAll('.pdots button')]
+  let inView = -1
+  const show = (n, animate) => {
+    if (n === inView) return
+    inView = n
+    cols.forEach((c, i) => c.classList.toggle('is-on', i === n))
+    dots.forEach((d, i) => { d.classList.toggle('is-on', i === n); d.setAttribute('aria-current', i === n) })
+    const c = cols[n]
+    const swap = () => {
+      barPrice.innerHTML = `<b>${c.dataset.price}</b><span>${c.dataset.per}</span>`
+      barBook.setAttribute('aria-label', `Book now – ${c.dataset.name}`)
+    }
+    if (!animate || calm) return swap()
+    barPlan.getAnimations().forEach((a) => a.cancel())
+    barPlan.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-8px)' }],
+      { duration: 160, easing: EASE_IN, fill: 'forwards' }).finished.then(() => {
+      swap()
+      barPlan.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: EASE_OUT, fill: 'forwards' })
+    }).catch(() => {})
+  }
+  // the scroll that snaps c: its left edge on the headline's – except the last, which sits on the right edge
+  const snapAt = (c) => Math.min(c.offsetLeft - parseFloat(getComputedStyle(swipe).paddingLeft), swipe.scrollWidth - swipe.clientWidth)
+  const centred = () => cols.reduce((best, c, i) =>
+    Math.abs(snapAt(c) - swipe.scrollLeft) < Math.abs(snapAt(cols[best]) - swipe.scrollLeft) ? i : best, 0)
+  let tick
+  swipe.addEventListener('scroll', () => { cancelAnimationFrame(tick); tick = requestAnimationFrame(() => show(centred(), true)) }, { passive: true })
+  document.querySelectorAll('.pcol__more').forEach((b) => b.addEventListener('click', (e) => {
+    const r = b.getBoundingClientRect()
+    openSheet(document.getElementById(b.dataset.dialog), e.detail ? e.clientX : r.left + r.width / 2, e.detail ? e.clientY : r.top + r.height / 2)
+  }))
+  dots.forEach((d, i) => d.addEventListener('click', () =>
+    swipe.scrollTo({ left: snapAt(cols[i]), behavior: 'smooth' })))
+  // the bar knows when it's stuck: pinned at the screen's foot while the card still runs on below it
+  const bar = document.querySelector('.pbar'), pcard = document.querySelector('.pcard')
+  let stuckTick
+  const markStuck = () => bar.classList.toggle('is-stuck',
+    bar.getBoundingClientRect().bottom >= innerHeight - 1 && pcard.getBoundingClientRect().bottom > innerHeight + 1)
+  addEventListener('scroll', () => { cancelAnimationFrame(stuckTick); stuckTick = requestAnimationFrame(markStuck) }, { passive: true })
+  // a tap on a blurred neighbour brings it to the centre
+  cols.forEach((c) => c.addEventListener('click', (e) => {
+    if (!c.classList.contains('is-on')) swipe.scrollTo({ left: snapAt(c), behavior: 'smooth' })
+  }))
+  // it always opens on the first plan, its edge on the headline's
+  const openOn = () => { if (!phone.matches) return; swipe.scrollLeft = 0; show(0, false) }
+  openOn(); phone.addEventListener('change', openOn)
+
+  // Why me (phones): the switch flips between the two sides in place
+  const vsTabs = document.querySelectorAll('.vs__switch button')
+  vsTabs.forEach((t) => t.addEventListener('click', () => {
+    vsTabs.forEach((b) => { b.classList.toggle('is-on', b === t); b.classList.toggle('btn--ghost', b !== t); b.setAttribute('aria-selected', b === t) })
+    document.querySelector('.vs__side--them').classList.toggle('is-on', t.dataset.vs === 'them')
+    document.querySelector('.vs__side--me').classList.toggle('is-on', t.dataset.vs === 'me')
+  }))
+
+  // The site's typographic rule (src/lib/typography.ts): a short function word never ends a line –
+  // the space after it becomes a no-break space, so "a kid", "and the", "for you" stay together.
+  const BIND = new Set(['a', 'an', 'the', 'at', 'by', 'for', 'in', 'of', 'off', 'on', 'per', 'to', 'up', 'via', 'as',
+    'and', 'but', 'if', 'nor', 'or', 'so', 'yet', 'i', 'me', 'my', 'we', 'us', 'our', 'it', 'its', 'he', 'she', 'his',
+    'her', 'you', 'is', 'am', 'are', 'was', 'be', 'do', 'can', 'not', 'no'])
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => n.parentElement.closest('script, style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  })
+  for (let n; (n = walker.nextNode());) {
+    const words = n.nodeValue.split(' ')
+    n.nodeValue = words.reduce((out, w, i) => i === words.length - 1 ? out + w
+      : out + w + (BIND.has(w.replace(/^[("“‘'[]+/, '').toLowerCase()) ? '\u00a0' : ' '), '')
+  }
+
+  // Videos only play while they're on screen
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    const v = e.target
+    if (e.isIntersecting && (!v.closest('.ways__media') || v.classList.contains('is-on'))) v.play().catch(() => {})
+    else v.pause()
+  }), { rootMargin: '200px 0px' })
+  document.querySelectorAll('video').forEach((v) => io.observe(v))
+</script>
+</body>
+</html>

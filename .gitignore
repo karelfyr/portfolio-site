@@ -25,3 +25,6 @@ dist-ssr
 
 # Secrets
 .env
+
+# Signage page source videos – hundreds of MB each, too big for GitHub; kept locally only
+public/images/DigitalSignagePage/

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Portfolio — how it was made</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.3.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.3.0/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sauce-one@5.3.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/open-sauce-one@5.3.0/500.css">
+<style>
+  /* the portfolio's tokens, as on the signage page */
+  :root {
+    --bg: #030303; --fg: #f5f5f5; --text: #bdbdbd; --muted: #a2a2a2; --dim: #848484; --faint: #686868;
+    --edge: rgba(255, 255, 255, 0.16); --edge-quiet: rgba(255, 255, 255, 0.08);
+    --gutter: 40px; --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --track-display: -0.035em; --track-ui: -0.02em; --track-body: 0.01em; --word-display: 0.06em;
+    --font-display: 'Switzer', 'Inter', system-ui, sans-serif;
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-body: 'Open Sauce One', 'Inter', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p, ul { margin: 0; } ul { padding: 0; list-style: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+  /* type: one scale – 13 notes · 15 text · 22 names · 48 headlines · 80 hero; emphasis by weight and opacity */
+  .title, .h2 { font-family: var(--font-display); font-weight: 500; line-height: 1; text-transform: uppercase;
+    letter-spacing: var(--track-display); word-spacing: var(--word-display); text-wrap: balance; }
+  .title { font-size: clamp(40px, 5.4vw, 80px); }
+  .h2 { font-size: 48px; }
+  .label { font-family: var(--font-ui); font-size: 13px; line-height: 20px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--dim); }
+  .body { font-size: 15px; line-height: 24px; letter-spacing: var(--track-body); color: var(--text); max-width: 48ch; text-wrap: pretty; }
+  .note { font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--faint); }
+  .name { font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 1.3; letter-spacing: var(--track-ui); }
+
+  /* layout: 12-column grid, 20px gutters, 40px page margin; sections 80 apart, headline → content 40 */
+  .container { max-width: 1920px; margin: 0 auto; padding: 0 var(--gutter); }
+  .section { padding: 80px 0; }
+  .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+  .after-head { margin-top: 40px; }
+
+  /* buttons: the system's primary and ghost */
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; background: #fff; color: #000;
+    font-family: var(--font-body); font-weight: 500; font-size: 15px; letter-spacing: -0.03em; text-transform: uppercase; white-space: nowrap;
+    transition: background 0.3s var(--ease), color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+  .btn--ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
+  @media (hover: hover) { .btn--ghost:hover { box-shadow: inset 0 0 0 1px var(--fg); } }
+
+  /* hero */
+  .hero { padding: 160px 0 0; }
+  .hero__sub { grid-column: 9 / 13; align-self: end; }
+  .hero h1 { grid-column: 1 / 9; }
+
+  /* numbers: four outlined boxes on the grid */
+  .kpi { grid-column: span 3; border: 1px solid var(--edge); padding: 24px; display: flex; flex-direction: column; gap: 4px; }
+  .kpi b { font-family: var(--font-display); font-weight: 500; font-size: 48px; line-height: 1; letter-spacing: var(--track-display); margin: 12px 0 4px; }
+
+  /* the isometric chart */
+  .chart { position: relative; border: 1px solid var(--edge); }
+  .chart__bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 24px; }
+  .chart__group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chart__group .btn { height: 40px; }
+  .chart svg { display: block; width: 100%; height: min(56svh, 560px); } /* the whole illustration fits the screen with its controls */
+  .face { transition: opacity 0.3s var(--ease); }
+  .prism:hover .face, .prism:focus .face { opacity: 0.85; }
+  .prism { cursor: pointer; outline: none; }
+  .tip { position: absolute; pointer-events: none; padding: 8px 12px; background: #0b0b0b; border: 1px solid var(--edge); font-size: 13px; line-height: 20px;
+    color: var(--text); white-space: nowrap; opacity: 0; transform: translate(-50%, calc(-100% - 12px)); transition: opacity 0.2s var(--ease); }
+  .tip b { color: var(--fg); font-weight: 500; }
+  .tip.is-on { opacity: 1; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 20px; padding: 24px; }
+  .legend li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 20px; letter-spacing: 0.03em; color: var(--dim); }
+  .legend li span:first-child { color: var(--text); }
+  .key { display: flex; gap: 20px; padding: 0 24px 24px; }
+  .key span { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+  .key i { width: 12px; height: 12px; display: inline-block; }
+
+  /* timeline */
+  .day { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 20px; align-items: center; padding: 12px 0; }
+  .track { position: relative; height: 24px; border: 1px solid var(--edge-quiet); }
+  .sit { position: absolute; top: 0; bottom: 0; background: var(--fg); transform-origin: left; }
+  .hours { position: relative; height: 20px; } .hours span { position: absolute; transform: translateX(-50%); }
+
+  /* the two lists */
+  .list { grid-column: span 6; border: 1px solid var(--edge); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .list li { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; }
+  .list li + li { border-top: 1px solid var(--edge-quiet); }
+
+  /* reveal on scroll: rise and fade, staggered */
+  .rise { opacity: 0; transform: translateY(16px); transition: opacity 0.6s var(--ease), transform 0.7s var(--ease); }
+  .rise.is-in { opacity: 1; transform: none; }
+
+  @media (max-width: 1199px) { .kpi { grid-column: span 6; } .list { grid-column: span 12; } .hero h1, .hero__sub { grid-column: 1 / 13; } }
+  @media (max-width: 809px) {
+    :root { --gutter: 20px; }
+    .section { padding: 64px 0; } .hero { padding-top: 96px; }
+    .title, .h2 { font-size: 32px; }
+    .kpi b { font-size: 32px; } .kpi { padding: 20px; }
+    .chart__bar { padding: 16px; } .legend, .key { padding-inline: 16px; }
+    .day { grid-template-columns: 1fr; gap: 8px; }
+    .name { font-size: 20px; }
+    .chart svg { height: auto; } /* narrow screens: the drawing's own proportions, no empty band */
+  }
+  @media (prefers-reduced-motion: reduce) { .rise { opacity: 1; transform: none; transition: none; } }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="container grid">
+    <h1 class="title">One portfolio. Eight days. 507 decisions.</h1>
+    <p class="body hero__sub">How the portfolio site was made – six case studies, two animated clips, booking, and the signage page. What came from Karel, what came from AI, where the hours went and what it cost. Measured from the working log, 13–25 October.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container grid">
+    <div class="kpi rise"><p class="label">Active time</p><b>30.2 h</b><p class="note">Karel 15.7 h · AI 14.9 h, over 8 working days</p></div>
+    <div class="kpi rise"><p class="label">Karel’s messages</p><b>507</b><p class="note">11,404 words, 57 screenshots, 52 reverts</p></div>
+    <div class="kpi rise"><p class="label">AI actions</p><b>3,412</b><p class="note">edits, browser tests, screenshots</p></div>
+    <div class="kpi rise"><p class="label">What it cost</p><b>€16.89</b><p class="note">extra usage on top of the Pro plan · ~$505 at API rates</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="h2">Thirty hours, split down the middle.</h2>
+    <div class="chart after-head rise">
+      <div class="chart__bar">
+        <div class="chart__group" role="tablist" aria-label="View">
+          <button class="btn" data-view="areas" role="tab" aria-selected="true">Hours by area</button>
+          <button class="btn btn--ghost" data-view="decisions" role="tab" aria-selected="false">Decisions</button>
+          <button class="btn btn--ghost" data-view="actions" role="tab" aria-selected="false">AI actions</button>
+          <button class="btn btn--ghost" data-view="credits" role="tab" aria-selected="false">Credits</button>
+        </div>
+        <div class="chart__group" aria-label="Show">
+          <button class="btn" data-who="both" aria-pressed="true">Both</button>
+          <button class="btn btn--ghost" data-who="you" aria-pressed="false">Karel</button>
+          <button class="btn btn--ghost" data-who="ai" aria-pressed="false">AI</button>
+        </div>
+      </div>
+      <svg id="iso" viewBox="0 0 1200 760" role="img" aria-label="Isometric bar chart"></svg>
+      <div class="tip" id="tip"></div>
+      <div class="key"><span><i style="background:#f5f5f5"></i>Karel</span><span><i style="background:#5e5e5e"></i>AI</span></div>
+      <ul class="legend" id="legend"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="h2">Eight days, mostly after noon.</h2>
+    <p class="note" style="margin-top:12px">Local time, UTC+7. A sitting past midnight stays on the day it started.</p>
+    <div class="after-head rise">
+      <div class="day"><p class="label">Tue 13 Oct</p><div class="track" data-sits="15.72-16.1,17.15-18.22,18.53-18.7,19.28-20.1"></div></div>
+      <div class="day"><p class="label">Wed 14 Oct</p><div class="track" data-sits="15.62-15.67,17.47-17.82,18.33-18.47,19.2-19.27,19.6-19.97,21.22-22.3"></div></div>
+      <div class="day"><p class="label">Thu 15 Oct</p><div class="track" data-sits="12.17-12.7,13.6-13.85,14.92-15.3,15.82-15.88,16.22-16.32,19.25-19.32,19.68-20.88"></div></div>
+      <div class="day"><p class="label">Tue 20 Oct</p><div class="track" data-sits="11.52-13.05,13.37-14.18,15.95-16.17,16.85-19.93"></div></div>
+      <div class="day"><p class="label">Wed 21 Oct</p><div class="track" data-sits="21.13-21.98,23.55-24.22,24.82-25.9"></div></div>
+      <div class="day"><p class="label">Thu 22 Oct</p><div class="track" data-sits="9.02-9.62,10.83-12.63,13.42-13.9,14.17-14.22,14.53-15.68,16.0-16.47,17.02-17.07"></div></div>
+      <div class="day"><p class="label">Fri 23 Oct</p><div class="track" data-sits="9.85-10.1,10.65-10.68,16.23-18.73,19.13-19.58,22.62-22.67"></div></div>
+      <div class="day"><p class="label">Sun 25 Oct</p><div class="track" data-sits="11.77-11.87,12.57-12.67,12.92-13.47,14.03-14.48,15.12-17.93,18.35-19.43,20.78-22.62"></div></div>
+      <div class="day"><span></span><div class="hours note" id="hours"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="h2">Ideas from both. Taste from Karel.</h2>
+    <div class="grid after-head">
+      <div class="list rise">
+        <p class="label">Decided by Karel</p>
+        <ul>
+          <li><p class="body">Images exactly as uploaded</p><p class="note">Never compressed, always in order, the first one is the hero – written into the project rules on day one.</p></li>
+          <li><p class="body">Fidelity over performance</p><p class="note">Shortcuts keeps its real Safari glass; nothing simplified per browser.</p></li>
+          <li><p class="body">An own booking system</p><p class="note">Instead of cal.com: a calendar, emails and a booking flow built for the site.</p></li>
+          <li><p class="body">The feel of every motion</p><p class="note">The Decathlon and Shortcuts clips, tuned frame by frame – and a motion playbook to keep the taste reusable.</p></li>
+          <li><p class="body">Every line of copy</p><p class="note">From “Engineer with a designer’s eye” to the signage offer and its prices.</p></li>
+          <li><p class="body">52 times: back</p><p class="note">Every version that didn’t feel right was reverted – the taste filter on everything AI proposed.</p></li>
+        </ul>
+      </div>
+      <div class="list rise">
+        <p class="label">Proposed by AI, kept by Karel</p>
+        <ul>
+          <li><p class="body">Bake the Decathlon clip to video</p><p class="note">After the live animation stuttered in Safari: polish it in code, then record it.</p></li>
+          <li><p class="body">The GPU rendering path</p><p class="note">Smoother camera moves and zooms in the animated clips.</p></li>
+          <li><p class="body">The booking logic</p><p class="note">Free slots from the calendar, confirmation emails, the server behind the popup.</p></li>
+          <li><p class="body">One spacing scale, one grey scale</p><p class="note">And the mobile audit that followed: tabs, zero-shift switches, 44px targets.</p></li>
+          <li><p class="body">Pricing with real numbers</p><p class="note">Raising the top plan to $11,900; US salary data for the comparison.</p></li>
+          <li><p class="body">Browser plumbing</p><p class="note">Page locked under popups, the Safari pinning fix, cards and buttons on one edge.</p></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container"><p class="note rise">Method: 507 messages from the working log, 13–25 October; the signage page’s labelled one by one, the rest by rule. Cost: Claude Code’s own API-rate figures; the real bill is the Pro plan plus €16.89 of extra usage. Time from a message to the AI’s last action counts as AI time; from that action to the next message as Karel’s (reviewing, deciding, typing). Gaps over 15 minutes are breaks.</p></div>
+</section>
+
+<script>
+  // ── data ────────────────────────────────────────────────────────────────
+  const VIEWS = {
+    areas: { unit: 'hours', rows: [
+      ['Case studies', 2.4, 1.2], ['Shortcuts clip', 0.8, 0.8], ['Home and about', 2.5, 1.1], ['Intro video', 1.5, 1.3],
+      ['Booking and contact', 0.9, 0.6], ['Decathlon clip', 2.6, 4.6], ['Signage page', 4.9, 5.1], ['This report', 0.2, 0.2]] },
+    decisions: { unit: 'messages', rows: [
+      ['Copy and messaging', 107, 0], ['Layout and grid', 93, 0], ['Technical and QA', 75, 0], ['Feedback and reverts', 52, 0],
+      ['Visual style and type', 48, 0], ['Motion and interaction', 44, 0], ['Offer and pricing', 23, 0], ['Spacing', 19, 0], ['Asked AI to decide', 0, 46]] },
+    actions: { unit: 'actions', rows: [
+      ['Edits and terminal', 0, 1596], ['Browser tests', 0, 1189], ['Reading and screenshots', 0, 443], ['iOS simulator', 0, 85], ['Figma', 0, 61], ['Other', 0, 38]] },
+    credits: { unit: 'USD at API rates', rows: [
+      ['Tue 13', 0, 21], ['Wed 14', 0, 40], ['Thu 15', 0, 48], ['Tue 20', 0, 89], ['Wed 21', 0, 63], ['Thu 22', 0, 68], ['Fri 23', 0, 75], ['Sun 25', 0, 99]] },
+  }
+  // faces: top, left, right – white for Karel, grey for AI
+  const SHADE = { you: ['#f5f5f5', '#bdbdbd', '#848484'], ai: ['#6e6e6e', '#4a4a4a', '#333333'] }
+
+  // ── isometric projection ────────────────────────────────────────────────
+  const svg = document.getElementById('iso'), NS = 'http://www.w3.org/2000/svg'
+  const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6)
+  const U = 60, OX = 366, OY = 300 // one floor cell in px; the floor's back corner, placed so the floor sits centred with headroom for the tallest block
+  const P = (x, y, z) => [OX + (x - y) * C * U, OY + (x + y) * S * U - z]
+  const pts = (a) => a.map((p) => p.join(',')).join(' ')
+  const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e }
+
+  // floor: a faint isometric grid, 12 × 4 cells
+  const COLS = 12, DEPTH = 3, TALL = 220 // the tallest block, in px
+  // frame the drawing tightly: the floor's corners plus headroom for the tallest block and the row numbers
+  { const l = P(0, DEPTH, 0)[0] - 20, r = P(COLS, 0, 0)[0] + 20, t = OY - TALL - 40, b = P(COLS, DEPTH, 0)[1] + 50
+    svg.setAttribute('viewBox', `${l} ${t} ${r - l} ${b - t}`) }
+  const floor = el('g', { stroke: 'rgba(255,255,255,0.08)', 'stroke-width': 1 })
+  for (let i = 0; i <= COLS; i++) el('line', { x1: P(i, 0, 0)[0], y1: P(i, 0, 0)[1], x2: P(i, DEPTH, 0)[0], y2: P(i, DEPTH, 0)[1] }, floor)
+  for (let j = 0; j <= DEPTH; j++) el('line', { x1: P(0, j, 0)[0], y1: P(0, j, 0)[1], x2: P(COLS, j, 0)[0], y2: P(COLS, j, 0)[1] }, floor)
+  const blocks = el('g', {}), labels = el('g', {})
+
+  // a prism of width w, depth d at floor cell (x, y), height h px
+  const prismFaces = (x, y, w, d, h) => ({
+    top: pts([P(x, y, h), P(x + w, y, h), P(x + w, y + d, h), P(x, y + d, h)]),
+    left: pts([P(x, y + d, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x, y + d, h)]),
+    right: pts([P(x + w, y, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x + w, y, h)]),
+  })
+
+  const tip = document.getElementById('tip'), chart = document.querySelector('.chart')
+  let view = 'areas', who = 'both', bars = []
+
+  // build one view: per row two prisms side by side in depth – Karel behind, AI in front
+  const build = () => {
+    blocks.replaceChildren(); labels.replaceChildren(); bars = []
+    const rows = VIEWS[view].rows
+    const max = Math.max(...rows.flatMap((r) => [r[1], r[2]])) || 1
+    const step = COLS / rows.length, w = Math.min(0.9, step * 0.55)
+    rows.forEach((r, i) => {
+      const x = i * step + (step - w) / 2
+      ;[['you', r[1], 0.3], ['ai', r[2], 1.6]].forEach(([kind, v, y]) => { // Karel's (taller) behind, the AI's in front – both stay in view
+        if (!v) return
+        const g = el('g', { class: 'prism', tabindex: 0, 'aria-label': `${r[0]}: ${v} ${VIEWS[view].unit}, ${kind === 'you' ? 'Karel' : 'AI'}` }, blocks)
+        const f = ['top', 'left', 'right'].map((k, n) => el('polygon', { class: 'face', fill: SHADE[kind][n], stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 0.5 }, g))
+        bars.push({ g, f, x, y, w, d: 1.1, kind, target: (v / max) * TALL, h: 0, row: r[0], v })
+        const show = () => { const b = g.getBoundingClientRect(), c = chart.getBoundingClientRect()
+          tip.innerHTML = view === 'credits' ? `<b>$${v}</b> at API rates<br>${r[0]}` : `<b>${v}</b> ${VIEWS[view].unit} · ${kind === 'you' ? 'Karel' : 'AI'}<br>${r[0]}`
+          tip.style.left = `${b.left - c.left + b.width / 2}px`; tip.style.top = `${b.top - c.top}px`; tip.classList.add('is-on') }
+        g.addEventListener('pointerenter', show); g.addEventListener('focus', show)
+        g.addEventListener('pointerleave', () => tip.classList.remove('is-on')); g.addEventListener('blur', () => tip.classList.remove('is-on'))
+      })
+      // the row's number on the floor, in front of its pair
+      const [lx, ly] = P(x + w / 2, DEPTH + 0.5, 0)
+      el('text', { x: lx, y: ly + 14, fill: '#848484', 'font-family': 'Inter, sans-serif', 'font-size': 13, 'text-anchor': 'middle', 'letter-spacing': '0.03em' }, labels).textContent = String(i + 1).padStart(2, '0')
+    })
+    // back to front, so nearer prisms paint over farther ones
+    bars.sort((a, b) => (a.x + a.y) - (b.x + b.y)).forEach((b) => blocks.appendChild(b.g))
+    document.getElementById('legend').innerHTML = rows.map((r, i) =>
+      `<li><span>${String(i + 1).padStart(2, '0')} ${r[0]}</span><span>${view === 'credits' ? `$${r[2]}` : [r[1] ? `Karel ${r[1]}` : '', r[2] ? `AI ${r[2]}` : ''].filter(Boolean).join(' · ')}</span></li>`).join('')
+    grow()
+  }
+
+  // ── motion: blocks rise from the floor one after another (quick leave, long settle) ─────
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const ease = (t) => { // cubic-bezier(0.3, 0, 0.1, 1), solved numerically
+    let lo = 0, hi = 1; for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2, x = 3 * (1 - m) ** 2 * m * 0.3 + 3 * (1 - m) * m * m * 0.1 + m ** 3; x < t ? (lo = m) : (hi = m) }
+    const m = (lo + hi) / 2; return 3 * (1 - m) * m * m + m ** 3 }
+  let raf
+  const grow = () => {
+    cancelAnimationFrame(raf)
+    const t0 = performance.now(), from = bars.map((b) => b.h)
+    const frame = (now) => {
+      let busy = false
+      bars.forEach((b, i) => {
+        const shown = who === 'both' || who === b.kind
+        const to = shown ? b.target : 0
+        const t = calm ? 1 : Math.min(1, Math.max(0, (now - t0 - i * 40) / 700))
+        if (t < 1) busy = true
+        b.h = from[i] + (to - from[i]) * ease(t)
+        const faces = prismFaces(b.x, b.y, b.w, b.d, Math.max(b.h, 0.5))
+        b.f[0].setAttribute('points', faces.top); b.f[1].setAttribute('points', faces.left); b.f[2].setAttribute('points', faces.right)
+        b.g.style.opacity = shown ? 1 : 0.15
+      })
+      if (busy) raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+  }
+
+  // ── filters ──────────────────────────────────────────────────────────────
+  const pick = (sel, attr, set) => document.querySelectorAll(sel).forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll(sel).forEach((o) => { const on = o === b; o.classList.toggle('btn--ghost', !on); o.setAttribute(attr, on) })
+    set(b)
+  }))
+  pick('[data-view]', 'aria-selected', (b) => { view = b.dataset.view; build() })
+  pick('[data-who]', 'aria-pressed', (b) => { who = b.dataset.who; grow() })
+
+  // start when the chart comes into view
+  new IntersectionObserver(([e], o) => { if (e.isIntersecting) { build(); o.disconnect() } }, { threshold: 0.3 }).observe(svg)
+
+  // timeline: sittings drawn on a 09:00–02:00 axis (local time, UTC+7), growing in from the left
+  document.getElementById('hours').innerHTML = [9, 13, 17, 21, 25].map((h) => `<span style="left:${(h - 9) / 17 * 100}%">${String(h % 24).padStart(2, '0')}:00</span>`).join('')
+  document.querySelectorAll('.track').forEach((t) => t.dataset.sits.split(',').forEach((s, i) => {
+    const [a, b] = s.split('-').map(Number), d = document.createElement('i')
+    d.className = 'sit'; d.style.left = `${(a - 9) / 17 * 100}%`; d.style.width = `max(2px, ${(b - a) / 17 * 100}%)`
+    if (!calm) d.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 700, delay: 300 + i * 60, easing: 'cubic-bezier(0.3, 0, 0.1, 1)', fill: 'backwards' })
+    t.appendChild(d)
+  }))
+
+  // reveal on scroll
+  const rio = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); rio.unobserve(e.target) } }), { threshold: 0.15 })
+  document.querySelectorAll('.rise').forEach((r, i) => { r.style.transitionDelay = `${(i % 4) * 60}ms`; rio.observe(r) })
+</script>
+</body>
+</html>
