@@ -510,8 +510,8 @@ export function DecathlonClip() {
 }
 
 /** The recording: plays by itself, muted, on a seamless loop (each file is exactly one loop) – it
- * starts as soon as it can play through without stalling and the clip is near the screen, fades in
- * gently, and pauses while it's scrolled away. */
+ * starts once the clip is near the screen, fades in gently when the first frames play, and pauses
+ * while it's scrolled away. */
 function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [shown, setShown] = useState(false)
@@ -533,19 +533,16 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
     video.defaultMuted = true
     video.setAttribute('muted', '')
     let near = false
-    let enough = video.readyState >= 4 // HAVE_ENOUGH_DATA: it can play through without stalling
+    // Ask to play as soon as it's near – don't wait for canplaythrough: iOS doesn't buffer a video
+    // nobody asked to play and Chrome stops buffering a paused one early, so it may never fire.
+    // It stays hidden until frames are actually playing, then fades in.
     const play = () => {
-      if (!near || !enough) return
+      if (!near) return
       // only a refusal to autoplay (e.g. iOS Low Power Mode) falls back to the live clip – not a play
       // interrupted by scrolling away
       video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && onFail())
     }
-    const onEnough = () => {
-      enough = true
-      play()
-    }
     const onPlaying = () => setShown(true)
-    video.addEventListener('canplaythrough', onEnough)
     video.addEventListener('playing', onPlaying)
     const io = new IntersectionObserver(
       ([e]) => {
@@ -559,7 +556,6 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
     play()
     return () => {
       io.disconnect()
-      video.removeEventListener('canplaythrough', onEnough)
       video.removeEventListener('playing', onPlaying)
     }
   }, [L, onFail])
