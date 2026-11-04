@@ -10,6 +10,7 @@
     "start": "node server/index.ts",
     "google:auth": "node --env-file-if-exists=.env scripts/google-auth.ts",
     "lint": "oxlint",
+    "placeholders": "node scripts/image-placeholders.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

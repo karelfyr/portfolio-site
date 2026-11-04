@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { NOT_FOUND, pageMeta, SITE } from './data/meta'
 import { SmoothScroll } from './components/SmoothScroll'
 import { Nav } from './components/Nav'
 import { Footer } from './components/Footer'
@@ -13,6 +15,14 @@ import { Book } from './pages/Book'
 
 export default function App() {
   const { pathname } = useLocation()
+
+  // The server writes each page's title and description into the HTML; keep them right as you navigate.
+  useEffect(() => {
+    const meta = pageMeta(pathname) ?? NOT_FOUND
+    document.title = meta.title
+    document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', SITE.url + (pathname.replace(/\/+$/, '') || '/'))
+  }, [pathname])
 
   return (
     <SmoothScroll>

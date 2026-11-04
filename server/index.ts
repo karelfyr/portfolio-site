@@ -14,6 +14,7 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { calendarConnected, config, mailConnected } from './config.ts'
 import { availability, book, HttpError, inquiry } from './api.ts'
+import { NOT_FOUND, pageMeta, SITE, sitemapPaths, type PageMeta } from '../src/data/meta.ts'
 
 const DIST = resolve(import.meta.dirname, '../dist')
 
@@ -92,6 +93,52 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, path: string
   }
 }
 
+/* ── Page meta: each route's title, description and preview, written into the HTML ─── */
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+
+function withMeta(html: string, path: string, meta: PageMeta) {
+  const url = SITE.url + (path.replace(/\/+$/, '') || '/')
+  const image = SITE.url + (meta.image ?? SITE.image)
+  const tags = [
+    `<link rel="canonical" href="${esc(url)}" />`,
+    meta.noindex && '<meta name="robots" content="noindex" />',
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="${esc(SITE.name)}" />`,
+    `<meta property="og:url" content="${esc(url)}" />`,
+    `<meta property="og:title" content="${esc(meta.title)}" />`,
+    `<meta property="og:description" content="${esc(meta.description)}" />`,
+    `<meta property="og:image" content="${esc(image)}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    // Tells Google who the site belongs to and what it's called (shown above the result).
+    path === '/' &&
+      `<script type="application/ld+json">${JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          { '@type': 'WebSite', name: SITE.name, url: SITE.url },
+          {
+            '@type': 'Person',
+            name: SITE.name,
+            url: SITE.url,
+            jobTitle: SITE.role,
+            description: meta.description,
+            image: SITE.url + SITE.image,
+            sameAs: [SITE.linkedin],
+          },
+        ],
+      }).replace(/</g, '\\u003c')}</script>`,
+  ].filter(Boolean)
+  return html
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(meta.title)}</title>`)
+    .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(meta.description)}" />`)
+    .replace('</head>', `    ${tags.join('\n    ')}\n  </head>`)
+}
+
+const robots = `User-agent: *\nAllow: /\n\nSitemap: ${SITE.url}/sitemap.xml\n`
+const sitemap = () =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapPaths()
+    .map((p) => `  <url><loc>${SITE.url}${p === '/' ? '/' : p}</loc></url>`)
+    .join('\n')}\n</urlset>\n`
+
 /* ── Static files (with SPA fallback) ─── */
 const gzCache = new Map<string, Buffer>()
 
@@ -100,6 +147,13 @@ const ALIASES: Record<string, string> = { '/signageexperiencedesign': '/signage.
 
 async function serveStatic(req: IncomingMessage, res: ServerResponse, path: string) {
   path = ALIASES[path.replace(/\/+$/, '')] ?? path
+  if (path === '/robots.txt' || path === '/sitemap.xml') {
+    res.writeHead(200, {
+      'content-type': path === '/robots.txt' ? TYPES['.txt'] : 'application/xml; charset=utf-8',
+      'cache-control': 'public, max-age=3600',
+    })
+    return res.end(req.method === 'HEAD' ? undefined : path === '/robots.txt' ? robots : sitemap())
+  }
   let file = normalize(join(DIST, decodeURIComponent(path)))
   if (!file.startsWith(DIST)) return json(res, 400, { error: 'Bad path' })
   let info = await stat(file).catch(() => null)
@@ -151,15 +205,27 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse, path: stri
     return void createReadStream(file).pipe(res)
   }
   let body: Buffer = await readFile(file)
+  let status = 200
+  if (file === join(DIST, 'index.html')) {
+    // An app page: its own title, description and preview; paths with no page get a real 404.
+    const route = path === '/index.html' ? '/' : path
+    const meta = pageMeta(route)
+    if (!meta) status = 404
+    body = Buffer.from(withMeta(body.toString('utf8'), route, meta ?? NOT_FOUND))
+  }
   if (/\bgzip\b/.test(String(req.headers['accept-encoding']))) {
-    const key = `${file}:${info.mtimeMs}`
+    const key = `${file}:${path}:${info.mtimeMs}`
     let gz = gzCache.get(key)
-    if (!gz) gzCache.set(key, (gz = gzipSync(body)))
+    // 404 pages aren't cached: any made-up path would otherwise add an entry
+    if (!gz) {
+      gz = gzipSync(body)
+      if (status === 200) gzCache.set(key, gz)
+    }
     body = gz
     headers['content-encoding'] = 'gzip'
     headers.vary = 'accept-encoding'
   }
-  res.writeHead(200, headers)
+  res.writeHead(status, headers)
   res.end(req.method === 'HEAD' ? undefined : body)
 }
 

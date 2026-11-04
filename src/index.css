@@ -692,7 +692,7 @@ html.is-locked { overflow: hidden; }
 }
 /* Real images keep their own proportions — never cropped or scaled out of shape. */
 .cs-img { overflow: hidden; }
-.cs-img > img { width: 100%; height: auto; }
+.cs-img img { width: 100%; height: auto; }
 /* Slot shapes from the design apply only to empty placeholders. */
 .cs-img > .img-placeholder { height: 100%; }
 .cs-img--hero:has(.img-placeholder) { aspect-ratio: 16 / 9; }
@@ -898,4 +898,34 @@ html.is-locked { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+
+/* ── Image loading: a tiny copy, heavily blurred and gently pulsing, until the real image is in ─── */
+.img { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; }
+.img > img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.3, 0, 0.1, 1);
+}
+.img--loaded > img { opacity: 1; }
+.img__lqip {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* scaled up a little so the blur never shows soft, see-through edges */
+  transform: scale(1.15);
+  filter: blur(18px) brightness(0.78);
+  animation: img-loading-pulse 2.4s ease-in-out infinite;
+}
+/* Never brighter than the image itself: it peaks at 92%, so whites never clip to pure white. */
+@keyframes img-loading-pulse {
+  0%, 100% { filter: blur(18px) brightness(0.78); }
+  50% { filter: blur(18px) brightness(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .img__lqip { animation: none; filter: blur(18px) brightness(0.85); }
 }

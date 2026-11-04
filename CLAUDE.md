@@ -10,6 +10,9 @@ Images are served exactly as provided – every file in `public/images/` is used
 - One exception, on Karel's request (Oct 2026): `public/images/decathlon/phone/` holds lossless
   copies of `welcome.png` and `mat-title.png` sized to the most a phone ever displays them, used only
   by the phone layout of the Decathlon clip. The originals are untouched and desktop uses them.
+- One more exception, on Karel's request (Nov 2026): every image gets a tiny 16 px copy, shown heavily
+  blurred while the real image loads (`src/data/image-placeholders.json`, inlined into the app). The
+  served images are untouched. After adding or replacing images, run `npm run placeholders`.
 
 ## Design fidelity over performance: Shortcuts case study (`/works/shortcuts`)
 
