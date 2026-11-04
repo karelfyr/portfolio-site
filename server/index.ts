@@ -8,6 +8,7 @@
  *   GET  /api/health         which integrations are connected
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
@@ -117,8 +118,33 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse, path: stri
     // Hashed build assets never change; everything else revalidates.
     'cache-control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'public, max-age=0, must-revalidate',
   }
+  if (!COMPRESSIBLE.has(ext)) {
+    // Media is streamed with byte-range support: Safari/iOS won't play a video without 206 responses.
+    const size = info.size
+    headers['accept-ranges'] = 'bytes'
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ''))
+    if (range && (range[1] || range[2])) {
+      let start = range[1] ? Number(range[1]) : size - Number(range[2])
+      let end = range[1] && range[2] ? Number(range[2]) : size - 1
+      start = Math.max(0, start)
+      end = Math.min(end, size - 1)
+      if (start > end) {
+        res.writeHead(416, { 'content-range': `bytes */${size}` })
+        return res.end()
+      }
+      headers['content-range'] = `bytes ${start}-${end}/${size}`
+      headers['content-length'] = String(end - start + 1)
+      res.writeHead(206, headers)
+      if (req.method === 'HEAD') return res.end()
+      return void createReadStream(file, { start, end }).pipe(res)
+    }
+    headers['content-length'] = String(size)
+    res.writeHead(200, headers)
+    if (req.method === 'HEAD') return res.end()
+    return void createReadStream(file).pipe(res)
+  }
   let body: Buffer = await readFile(file)
-  if (COMPRESSIBLE.has(ext) && /\bgzip\b/.test(String(req.headers['accept-encoding']))) {
+  if (/\bgzip\b/.test(String(req.headers['accept-encoding']))) {
     const key = `${file}:${info.mtimeMs}`
     let gz = gzCache.get(key)
     if (!gz) gzCache.set(key, (gz = gzipSync(body)))
