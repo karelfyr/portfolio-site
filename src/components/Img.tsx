@@ -1,8 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import sizes from 'virtual:image-sizes'
 import placeholders from '../data/image-placeholders.json'
 
 const LQIP = placeholders as Record<string, string>
+
+/** How long an image may take, once it's on screen, before it gets the blurred loading state. */
+const PATIENCE_MS = 250
 
 type Props = {
   src?: string
@@ -18,30 +21,57 @@ type Props = {
  * Width/height come from the file itself, so the browser reserves the right space
  * before it loads (no layout jumps). Decoding happens off the main thread.
  *
- * While it loads, a tiny copy of it fades in heavily blurred and breathes gently (see
- * scripts/image-placeholders.mjs); the image then lands on top equally blurred and racks into
- * focus (index.css, "Image loading"). An image the browser already has shows straight away.
+ * Loading state only when the connection is slow: an image that arrives within PATIENCE_MS of
+ * being on screen simply shows, as it always did. One that doesn't gets a tiny copy of itself,
+ * heavily blurred and breathing (scripts/image-placeholders.mjs), and then resolves into focus
+ * over it once decoded (index.css, "Image loading").
  */
 export function Img({ src, alt, priority = false, eager = false }: Props) {
+  const wrap = useRef<HTMLSpanElement>(null)
   const ref = useRef<HTMLImageElement>(null)
-  // loading: blurred placeholder breathing · resolving: the image racks into focus over it · done
-  const [state, setState] = useState<'loading' | 'resolving' | 'done'>('loading')
+  // waiting: no loading state (yet) · slow: blurred placeholder · resolving: image comes into focus
+  const [state, setState] = useState<'waiting' | 'slow' | 'resolving' | 'done'>('waiting')
+  const loaded = useRef(false)
+  const lqip = src ? LQIP[src] : undefined
+
   useLayoutEffect(() => {
-    // already in the browser's cache: skip the loading state entirely
-    if (ref.current?.complete && ref.current.naturalWidth) setState('done')
+    // already in the browser's cache
+    if (ref.current?.complete && ref.current.naturalWidth) {
+      loaded.current = true
+      setState('done')
+    }
   }, [src])
+
+  useEffect(() => {
+    const el = wrap.current
+    if (!el || !lqip) return
+    let timer = 0
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      timer = window.setTimeout(() => !loaded.current && setState((s) => (s === 'waiting' ? 'slow' : s)), PATIENCE_MS)
+    })
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      clearTimeout(timer)
+    }
+  }, [lqip])
+
   if (!src) return <div className="img-placeholder" role="img" aria-label={alt} />
   const size = sizes[src]
-  const lqip = LQIP[src]
-  const resolve = () => {
+  const onLoad = () => {
+    loaded.current = true
     const img = ref.current
-    // wait until it's decoded, so the focus pull runs on a ready bitmap and never stutters
+    // resolve on a decoded bitmap, so the transition never stutters
     const ready = img?.decode ? img.decode().catch(() => {}) : Promise.resolve()
-    ready.then(() => setState((s) => (s === 'loading' ? (lqip ? 'resolving' : 'done') : s)))
+    ready.then(() => setState((s) => (s === 'slow' ? 'resolving' : 'done')))
   }
   return (
-    <span className={`img${state === 'loading' ? '' : ' img--loaded'}${state === 'resolving' ? ' img--resolving' : ''}`}>
-      {lqip && state !== 'done' && <span className="img__lqip" style={{ backgroundImage: `url(${lqip})` }} aria-hidden="true" />}
+    <span ref={wrap} className={`img img--${state}`}>
+      {lqip && (state === 'slow' || state === 'resolving') && (
+        <span className="img__lqip" style={{ backgroundImage: `url(${lqip})` }} aria-hidden="true" />
+      )}
       <img
         ref={ref}
         src={src}
@@ -51,10 +81,9 @@ export function Img({ src, alt, priority = false, eager = false }: Props) {
         decoding="async"
         loading={priority || eager ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : 'auto'}
-        onLoad={resolve}
+        onLoad={onLoad}
         onError={() => setState('done')}
-        // the focus pull is the longer of the two animations: once it ends, drop placeholder and filter
-        onAnimationEnd={(e) => e.animationName === 'img-resolve-focus' && setState('done')}
+        onAnimationEnd={(e) => /^img-resolve-(focus|settle)$/.test(e.animationName) && setState('done')}
       />
     </span>
   )

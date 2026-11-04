@@ -13,6 +13,10 @@ import { disableZoom } from './lib/noZoom'
 // Always start at the top so the hero intro plays (Lenis handles scroll from here).
 history.scrollRestoration = 'manual'
 
+// The hero's height (--vh, see useMobileSafeVh) is set before the first paint, so the page never
+// lays out at one height and then jumps to another right after loading.
+document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`)
+
 // Safari-specific rendering fallbacks in index.css are scoped under html.is-webkit.
 if (isWebKit) document.documentElement.classList.add('is-webkit')
 

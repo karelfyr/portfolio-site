@@ -8,7 +8,7 @@ import { useEffect, useState, type RefObject } from 'react'
  */
 
 const STEP_MS = 90 // gap between consecutive reveals
-const MAX_WAIT_MS = 900 // never make anything wait longer than this
+const MAX_WAIT_MS = 360 // never make anything wait longer than this – a fast scroll mustn't land on blanks
 
 type Entry = { el: Element; start: (delaySeconds: number) => void }
 
@@ -60,8 +60,8 @@ export function useQueuedReveal(ref: RefObject<Element | null>, enabled = true) 
         if (passed) setDelay(0)
         else enqueue({ el, start: (d) => !cancelled && setDelay(d) })
       },
-      // Starts a little before it scrolls in, so a fast scroll never lands on an empty screen.
-      { rootMargin: '0px 0px 20% 0px' },
+      // Starts the moment it enters the screen, so the rollout always plays where it can be seen.
+      { rootMargin: '0px' },
     )
     io.observe(el)
     return () => {

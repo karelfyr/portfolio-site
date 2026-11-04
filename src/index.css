@@ -172,7 +172,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
-  height: calc(var(--vh, 1vh) * 100);
+  height: calc(var(--vh, 1svh) * 100);
   min-height: 420px;
   display: flex;
   align-items: center;
@@ -481,7 +481,7 @@ html.is-locked { overflow: hidden; }
 }
 
 /* ---------- Pages (Works, Contact, 404) ---------- */
-.page { padding-top: 160px; padding-bottom: 160px; min-height: calc(var(--vh, 1vh) * 100); }
+.page { padding-top: 160px; padding-bottom: 160px; min-height: calc(var(--vh, 1svh) * 100); }
 .page__title {
   font-family: var(--font-display);
   font-weight: 500;
@@ -901,26 +901,25 @@ html.is-locked { overflow: hidden; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
 }
 
-/* ── Image loading ───
-   1. Enter: a tiny copy of the image fades in (0 → 1) heavily blurred, then breathes – a slow pulse
-      in brightness, capped below the image's own (92%), so whites never clip.
-   2. Resolve: once the real image has decoded it lands on top matching the placeholder (same blur,
-      a touch darker), fades in quickly while the blur racks to sharp, like a lens pulling focus.
-   3. The placeholder is removed only once the image is fully sharp; no filter is left behind. */
+/* ── Image loading, only when the connection is slow ───
+   An image that arrives within 250 ms of being on screen simply shows (Img.tsx). Otherwise:
+   1. Enter: a tiny copy of it fades in (0 → 1) heavily blurred, then breathes – a slow pulse in
+      brightness, capped below the image's own (92%), so whites never clip.
+   2. Resolve, once decoded. Blink: the image lands on top equally blurred, fades in quickly while
+      the blur racks to sharp, like a lens pulling focus. WebKit rasterises an animated blur on the
+      CPU every frame (it lagged on big images), so there the sharp image crossfades over the blur
+      with a slight settle in scale instead – the same read, on the GPU only.
+   3. The placeholder is removed once the image is in; no filter is left behind. */
 .img { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; }
-.img > img {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-}
-.img--loaded > img { opacity: 1; }
+.img > img { position: relative; width: 100%; height: 100%; object-fit: cover; }
+/* while slow, the image stays hidden so it never paints in half-loaded over the blur */
+.img--slow > img { opacity: 0; }
 .img--resolving > img {
   animation:
     img-resolve-focus 0.9s cubic-bezier(0.3, 0, 0.1, 1) both,
     img-resolve-fade 0.35s cubic-bezier(0.3, 0, 0.1, 1) both;
 }
+.is-webkit .img--resolving > img { animation: img-resolve-settle 0.7s cubic-bezier(0.3, 0, 0.1, 1) both; }
 @keyframes img-resolve-focus {
   from { filter: blur(18px) brightness(0.85); }
   to { filter: blur(0) brightness(1); }
@@ -928,6 +927,10 @@ html.is-locked { overflow: hidden; }
 @keyframes img-resolve-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+@keyframes img-resolve-settle {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: none; }
 }
 .img__lqip {
   position: absolute;
