@@ -31,6 +31,8 @@ import legendRepair from './assets/legend-repair.svg'
 import legendRental from './assets/legend-rental.svg'
 import legendRestroom from './assets/legend-restroom.svg'
 import youAreHere from './assets/you-are-here.svg'
+import loadingDesktop from './assets/loading-desktop.jpg'
+import loadingPhone from './assets/loading-phone.jpg'
 import './decathlon-clip.css'
 
 /*
@@ -509,41 +511,64 @@ export function DecathlonClip() {
   return <LiveClip />
 }
 
-/** The recording: plays by itself, muted, on a seamless loop (each file is exactly one loop) – it
- * starts once the clip is near the screen, fades in gently when the first frames play, and pauses
- * while it's scrolled away. */
+/** Which file this browser gets: HEVC at 120 fps for Apple devices, H.264 at 60 fps for every other
+ * browser (Android phones often can't decode HEVC). */
+const videoUrl = (video: HTMLVideoElement, phone: boolean) =>
+  `/videos/decathlon-${phone ? 'phone' : 'desktop'}-${video.canPlayType('video/mp4; codecs="hvc1"') ? 'hevc' : 'avc'}.mp4`
+
+/** The recording: plays by itself, muted, on a seamless loop (each file is exactly one loop). The
+ * whole file downloads first, so it never stalls – meanwhile the first frame shows heavily blurred,
+ * gently pulsing in brightness. Once it's in and the clip is near the screen it plays, fades in over
+ * the blur, and pauses while it's scrolled away. */
 function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [shown, setShown] = useState(false)
+  const [blurGone, setBlurGone] = useState(false)
+  const failRef = useRef(onFail)
+  useEffect(() => {
+    failRef.current = onFail
+  })
   const L = phone ? PHONE : DESKTOP
   useEffect(() => {
     const video = ref.current!
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      // the finished Select state, still
-      const still = () => {
-        video.currentTime = L.T.ad + 2 - L.T.start
-        setShown(true)
-      }
-      video.addEventListener('loadedmetadata', still, { once: true })
-      return () => video.removeEventListener('loadedmetadata', still)
-    }
     // muted from the start (iOS only autoplays muted video)
     video.muted = true
     video.defaultMuted = true
     video.setAttribute('muted', '')
     let near = false
-    // Ask to play as soon as it's near – don't wait for canplaythrough: iOS doesn't buffer a video
-    // nobody asked to play and Chrome stops buffering a paused one early, so it may never fire.
-    // It stays hidden until frames are actually playing, then fades in.
+    let ready = false
+    let objectUrl = ''
     const play = () => {
-      if (!near) return
+      if (!near || !ready) return
       // only a refusal to autoplay (e.g. iOS Low Power Mode) falls back to the live clip – not a play
       // interrupted by scrolling away
-      video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && onFail())
+      video.play().catch((err: DOMException) => err.name === 'NotAllowedError' && failRef.current())
+    }
+    const onReady = () => {
+      ready = true
+      if (reduce) {
+        // the finished Select state, still
+        video.currentTime = L.T.ad + 2 - L.T.start
+        setShown(true)
+      } else play()
     }
     const onPlaying = () => setShown(true)
+    video.addEventListener('loadeddata', onReady, { once: true })
     video.addEventListener('playing', onPlaying)
+    // Download the whole file, then play it from memory: no buffering pauses, on any connection.
+    const url = videoUrl(video, phone)
+    const abort = new AbortController()
+    fetch(url, { signal: abort.signal })
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob)
+        video.src = objectUrl
+      })
+      .catch(() => {
+        // fetch failed (offline, blocked): let the video stream it as usual
+        if (!abort.signal.aborted) video.src = url
+      })
     const io = new IntersectionObserver(
       ([e]) => {
         near = e.isIntersecting
@@ -553,29 +578,32 @@ function ClipVideo({ phone, onFail }: { phone: boolean; onFail: () => void }) {
       { rootMargin: '300px 0px' },
     )
     io.observe(video)
-    play()
     return () => {
+      abort.abort()
       io.disconnect()
+      video.removeEventListener('loadeddata', onReady)
       video.removeEventListener('playing', onPlaying)
+      video.removeAttribute('src')
+      video.load()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [L, onFail])
+  }, [L, phone])
   return (
-    <div className="dk-host" role="img" aria-label={LABEL}>
+    <div className="dk-host dk-video" role="img" aria-label={LABEL} style={{ aspectRatio: `${L.W} / ${L.H}` }}>
+      {/* Loading state: the first frame, heavily blurred, pulsing gently. Removed once the video has
+          faded in over it, so no blur is left anywhere. */}
+      {!blurGone && <img className="dk-video__loading" src={phone ? loadingPhone : loadingDesktop} alt="" aria-hidden="true" />}
       <video
         ref={ref}
         key={phone ? 'phone' : 'desktop'}
-        src={phone ? '/videos/decathlon-phone.mp4' : '/videos/decathlon-desktop.mp4'}
         muted
         loop
         playsInline
         preload="auto"
         disablePictureInPicture
         aria-hidden="true"
+        onTransitionEnd={() => shown && setBlurGone(true)}
         style={{
-          display: 'block',
-          width: '100%',
-          aspectRatio: `${L.W} / ${L.H}`,
-          background: '#081130',
           opacity: shown ? 1 : 0, // fades in once it's playing, never pops in
           transition: 'opacity 0.6s cubic-bezier(0.3, 0, 0.1, 1)',
         }}

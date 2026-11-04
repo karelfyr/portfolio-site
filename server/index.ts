@@ -117,6 +117,13 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse, path: stri
     'content-type': TYPES[ext] ?? 'application/octet-stream',
     // Hashed build assets never change; everything else revalidates.
     'cache-control': path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'public, max-age=0, must-revalidate',
+    // Lets the browser revalidate instead of downloading again (a 30 MB video, every visit).
+    etag: `W/"${info.size.toString(36)}-${Math.floor(info.mtimeMs).toString(36)}"`,
+    'last-modified': info.mtime.toUTCString(),
+  }
+  if (req.headers['if-none-match'] === headers.etag) {
+    res.writeHead(304, headers)
+    return res.end()
   }
   if (!COMPRESSIBLE.has(ext)) {
     // Media is streamed with byte-range support: Safari/iOS won't play a video without 206 responses.

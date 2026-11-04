@@ -238,3 +238,26 @@
   opacity: calc(1 - var(--ripple, 1));
   transform: scale(calc(1 + 0.9 * var(--ripple, 1)));
 }
+
+/* ── Video loading state: the first frame, heavily blurred, gently pulsing in brightness ─── */
+.dk-video { position: relative; overflow: hidden; }
+.dk-video video { position: relative; display: block; width: 100%; height: 100%; }
+.dk-video__loading {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* scaled up a little so the blur never shows soft, see-through edges */
+  transform: scale(1.12);
+  filter: blur(clamp(24px, 4vw, 64px)) brightness(0.78);
+  animation: dk-loading-pulse 2.4s ease-in-out infinite;
+}
+/* Never brighter than the frame itself: it peaks at 92%, so the whites never clip to pure white. */
+@keyframes dk-loading-pulse {
+  0%, 100% { filter: blur(clamp(24px, 4vw, 64px)) brightness(0.78); }
+  50% { filter: blur(clamp(24px, 4vw, 64px)) brightness(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dk-video__loading { animation: none; filter: blur(clamp(24px, 4vw, 64px)) brightness(0.85); }
+}
