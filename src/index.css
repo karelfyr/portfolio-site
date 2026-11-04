@@ -850,7 +850,8 @@ html.is-locked { overflow: hidden; }
      gutter to gutter. Subtitle and reel line up on the same left edge. */
   .hero__content { align-items: flex-start; text-align: left; }
   .hero__sub { font-size: 16px; }
-  .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 5.2); line-height: 0.92; }
+  /* 15% under full width: the longest line ("DESIGNER’S") spans ~76% of the screen */
+  .hero__title { font-size: calc((100vw - 2 * var(--gutter)) / 5.2 * 0.85); line-height: 0.92; }
   .hero__title > span { display: block; }
   .hero__video { display: block; align-self: stretch; margin-top: 12px; } /* the reel sits under the subtitle */
   .hero__video .intro-thumb--block { width: 100%; } /* side to side, inside the page gutter */
@@ -900,7 +901,12 @@ html.is-locked { overflow: hidden; }
   *, *::before, *::after { transition-duration: 0.01ms !important; }
 }
 
-/* ── Image loading: a tiny copy, heavily blurred and gently pulsing, until the real image is in ─── */
+/* ── Image loading ───
+   1. Enter: a tiny copy of the image fades in (0 → 1) heavily blurred, then breathes – a slow pulse
+      in brightness, capped below the image's own (92%), so whites never clip.
+   2. Resolve: once the real image has decoded it lands on top matching the placeholder (same blur,
+      a touch darker), fades in quickly while the blur racks to sharp, like a lens pulling focus.
+   3. The placeholder is removed only once the image is fully sharp; no filter is left behind. */
 .img { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; }
 .img > img {
   position: relative;
@@ -908,9 +914,21 @@ html.is-locked { overflow: hidden; }
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.6s cubic-bezier(0.3, 0, 0.1, 1);
 }
 .img--loaded > img { opacity: 1; }
+.img--resolving > img {
+  animation:
+    img-resolve-focus 0.9s cubic-bezier(0.3, 0, 0.1, 1) both,
+    img-resolve-fade 0.35s cubic-bezier(0.3, 0, 0.1, 1) both;
+}
+@keyframes img-resolve-focus {
+  from { filter: blur(18px) brightness(0.85); }
+  to { filter: blur(0) brightness(1); }
+}
+@keyframes img-resolve-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 .img__lqip {
   position: absolute;
   inset: 0;
@@ -919,13 +937,19 @@ html.is-locked { overflow: hidden; }
   /* scaled up a little so the blur never shows soft, see-through edges */
   transform: scale(1.15);
   filter: blur(18px) brightness(0.78);
-  animation: img-loading-pulse 2.4s ease-in-out infinite;
+  animation:
+    img-lqip-enter 0.45s cubic-bezier(0.3, 0, 0.1, 1) both,
+    img-lqip-breathe 2.4s ease-in-out 0.45s infinite;
 }
-/* Never brighter than the image itself: it peaks at 92%, so whites never clip to pure white. */
-@keyframes img-loading-pulse {
+@keyframes img-lqip-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes img-lqip-breathe {
   0%, 100% { filter: blur(18px) brightness(0.78); }
   50% { filter: blur(18px) brightness(0.92); }
 }
 @media (prefers-reduced-motion: reduce) {
   .img__lqip { animation: none; filter: blur(18px) brightness(0.85); }
+  .img--resolving > img { animation: img-resolve-fade 0.35s ease-out both; }
 }

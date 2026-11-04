@@ -18,27 +18,30 @@ type Props = {
  * Width/height come from the file itself, so the browser reserves the right space
  * before it loads (no layout jumps). Decoding happens off the main thread.
  *
- * While it loads, a tiny copy of it shows heavily blurred, gently pulsing (see
- * scripts/image-placeholders.mjs); the image fades in over it, then the blur is removed.
- * An image the browser already has shows straight away, with no blur at all.
+ * While it loads, a tiny copy of it fades in heavily blurred and breathes gently (see
+ * scripts/image-placeholders.mjs); the image then lands on top equally blurred and racks into
+ * focus (index.css, "Image loading"). An image the browser already has shows straight away.
  */
 export function Img({ src, alt, priority = false, eager = false }: Props) {
   const ref = useRef<HTMLImageElement>(null)
-  const [loaded, setLoaded] = useState(false)
-  const [blurGone, setBlurGone] = useState(false)
+  // loading: blurred placeholder breathing · resolving: the image racks into focus over it · done
+  const [state, setState] = useState<'loading' | 'resolving' | 'done'>('loading')
   useLayoutEffect(() => {
     // already in the browser's cache: skip the loading state entirely
-    if (ref.current?.complete && ref.current.naturalWidth) {
-      setLoaded(true)
-      setBlurGone(true)
-    }
+    if (ref.current?.complete && ref.current.naturalWidth) setState('done')
   }, [src])
   if (!src) return <div className="img-placeholder" role="img" aria-label={alt} />
   const size = sizes[src]
   const lqip = LQIP[src]
+  const resolve = () => {
+    const img = ref.current
+    // wait until it's decoded, so the focus pull runs on a ready bitmap and never stutters
+    const ready = img?.decode ? img.decode().catch(() => {}) : Promise.resolve()
+    ready.then(() => setState((s) => (s === 'loading' ? (lqip ? 'resolving' : 'done') : s)))
+  }
   return (
-    <span className={`img${loaded ? ' img--loaded' : ''}`}>
-      {lqip && !blurGone && <span className="img__lqip" style={{ backgroundImage: `url(${lqip})` }} aria-hidden="true" />}
+    <span className={`img${state === 'loading' ? '' : ' img--loaded'}${state === 'resolving' ? ' img--resolving' : ''}`}>
+      {lqip && state !== 'done' && <span className="img__lqip" style={{ backgroundImage: `url(${lqip})` }} aria-hidden="true" />}
       <img
         ref={ref}
         src={src}
@@ -48,9 +51,10 @@ export function Img({ src, alt, priority = false, eager = false }: Props) {
         decoding="async"
         loading={priority || eager ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : 'auto'}
-        onLoad={() => setLoaded(true)}
-        onError={() => setBlurGone(true)}
-        onTransitionEnd={(e) => e.propertyName === 'opacity' && loaded && setBlurGone(true)}
+        onLoad={resolve}
+        onError={() => setState('done')}
+        // the focus pull is the longer of the two animations: once it ends, drop placeholder and filter
+        onAnimationEnd={(e) => e.animationName === 'img-resolve-focus' && setState('done')}
       />
     </span>
   )

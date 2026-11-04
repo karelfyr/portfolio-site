@@ -60,7 +60,8 @@ export function useQueuedReveal(ref: RefObject<Element | null>, enabled = true) 
         if (passed) setDelay(0)
         else enqueue({ el, start: (d) => !cancelled && setDelay(d) })
       },
-      { rootMargin: '0px 0px -8% 0px' },
+      // Starts a little before it scrolls in, so a fast scroll never lands on an empty screen.
+      { rootMargin: '0px 0px 20% 0px' },
     )
     io.observe(el)
     return () => {
