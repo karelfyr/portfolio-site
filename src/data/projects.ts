@@ -171,11 +171,11 @@ const allProjects: Project[] = [
     featured: true,
     hero: '/images/decathlon/Decathlon_1.webp',
     intro:
-      'I designed the in-store navigation kiosk for Decathlon. Shoppers pick a sports section or search a sport from A to Z, and the kiosk shows them the way – the section’s sports, the route across the store map from where they stand, and a matching product next to it.',
+      'A wayfinding kiosk that turns every sport search into a path through the store. The kiosk finds each sport within its category and answers with a route and a Decathlon ad matched to that sport.',
     year: '2026',
-    delivered: 'Kiosk Interface Design · Wayfinding Flow · Store Map · Motion Prototype',
+    delivered: 'Kiosk Interface Design · Handoff to Development · Testing and Deployment',
     impact:
-      'Part of my kiosk work at POS Digital for Decathlon, KIA and Marriott – touchscreen interfaces serving more than 50 000 users every month.',
+      '15,000 searches a month. Each one leads to a sport’s section and puts the right Decathlon product along the route.',
     gallery: [
       { type: 'section', name: 'decathlon-clip' }, // 3840 × 2700 animated kiosk clip
     ],
